@@ -131,7 +131,6 @@ def interface_auto_submit():
     
     check_period = 10
     proto_bond = try_fetch_proto_bond(token)
-    print "~~~", proto_bond
     while proto_bond == None:
         printf("Checking transaction status...")
         for i in range(check_period):
