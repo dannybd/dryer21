@@ -20,7 +20,8 @@ class Process:
 		processes[name] = self
 		self.name, self.binary_path = name, binary_path
 		# If RPC is required, add an associated resource.
-		self.rpc_resource = Resource("/rpc/" + name, owner=self)
+		if has_rpc:
+			self.rpc_resource = Resource("/rpc/" + name, owner=self)
 		self.access = []
 
 	def grant(self, resource):
