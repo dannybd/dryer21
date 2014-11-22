@@ -2,7 +2,20 @@ import urllib, urllib2
 import json, base64
 import os, time
 from sys import stdout
-printf = stdout.write
+
+def printf(stuff):
+    stdout.write(stuff)
+    stdout.flush()
+
+def waiting_for(action):
+    s = '    '
+    s += action
+    s += '.' * (68 - len(action))
+    printf(s)
+
+def done():
+    print "DONE"
+
 
 BASE_URL = 'http://dannybd.mit.edu/6.858/'
 n = None
@@ -67,34 +80,38 @@ def gen_bond_filename():
     return hashstr + '.bond'
 
 def horiz_line():
-    print "=================================================="
+    print "================================================================================"
 
 def interface():
     print "\n" * 100
     print
-    print "##################################################"
-    print "#             DRYER 21 PYTHON SCRIPT             #"
-    print "#             by asuhl, snp, dannybd             #"
-    print "##################################################"
+    print "################################################################################"
+    print "##                           DRYER 21 PYTHON SCRIPT                           ##"
+    print "##                            A Bitcoin Anonymizer                            ##"
+    print "##                           by asuhl, snp, dannybd                           ##"
+    print "################################################################################"
     print
     print "Hello, and welcome to the Dryer 21 Python script!"
     print
-    printf("Connecting to Dryer 21 server.................")
+    waiting_for("Connecting to Dryer 21 server")
 
     global n, e, k0, k1
     (n, e, k0, k1) = get_crypto_vars()
 
-    print "DONE"
-    printf("Generating token..............................")
+    done()
+    waiting_for("Generating token")
 
     global token, nonce
     (token, nonce) = gen_token(n, e, k0, k1)
 
-    print "DONE"
+    done()
     print
     print "Please copy the following token into your browser:"
+    print
     print token
+    print
     horiz_line()
+    print
     print "Type 'c' to continue, or 'p' to submit via Python."
     user_input = raw_input('(c or p, then Enter) > ')
     while len(user_input) < 1 or user_input[0] not in 'cp':
@@ -110,29 +127,32 @@ def interface():
 
 def interface_wait_for_proto_bond():
     print "Paste the text from Step 4 below, and press Enter:"
-    horiz_line()
+    print
     proto_bond = raw_input()
+    print
     horiz_line()
     print
     interface_gen_bond(proto_bond)
 
 def interface_auto_submit():
-    printf("Sending token to server.......................")
+    print "Auto-submission selected."
+    print
+    waiting_for("Sending token to server")
 
     global token
     (price, addr) = fetch_bit_price_and_addr(token)
 
-    print "DONE"
+    done()
     print
-    print "Now, please send " + price + "to this address:"
-    print addr
+    print "Now, please send " + price + " to this address: " + addr
+    print
     horiz_line()
     print
-    
+
     check_period = 10
     proto_bond = try_fetch_proto_bond(token)
     while proto_bond == None:
-        printf("Checking transaction status...")
+        printf("Checking transaction status")
         for i in range(check_period):
             time.sleep(1)
             printf(".")
@@ -140,33 +160,32 @@ def interface_auto_submit():
         print
     print
     print "Transaction cleared!"
-    horiz_line()
     print
     interface_gen_bond(proto_bond)
-    
-    
+
+
 
 def interface_gen_bond(proto_bond):
-    printf("Generating bond...............................")
+    waiting_for("Generating bond")
 
     bond = gen_bond(proto_bond)
 
-    print "DONE"
-    printf("Saving bond...................................")
+    done()
+    waiting_for("Saving bond")
 
     filename = gen_bond_filename()
     with open(filename, 'w+') as f:
         f.write(bond)
 
-    print "DONE"
+    done()
     print
     horiz_line()
-    print "Congrats! You have successfully generated a bond."
-    print "It has been stored at this path:"
-    print os.path.abspath('.') + '\\' + filename
     print
-    print "Remember to wait a few days before trying to cash"
-    print "in your bond for 0.1BTC."
+    print "Congrats! You have successfully generated a bond. It's been stored here:"
+    print
+    print os.path.join(os.path.abspath('.'), filename)
+    print
+    print "Remember to wait a few days before trying to cash in your bond for 0.1BTC."
     print
     print
 
