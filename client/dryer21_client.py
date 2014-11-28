@@ -1,13 +1,20 @@
-import urllib, urllib2
-import json, base64
-import os, time
+from base64 import b64encode, b64decode
+import Crypto.Util.number as CryptoNumber
+import Crypto.Cipher.PKCS1_OAEP as PKCS1_OAEP
+import Crypto.Hash.SHA512 as SHA512
+import Crypto.PublicKey.RSA as RSA
+import json
+import os
 import sys
+from time import sleep
+from urllib import urlencode
+from urllib2 import urlopen
 
 class DryerServer:
 	BASE_URL = 'http://dannybd.mit.edu/6.858/'
-	INIT_URL = 'get_crypto_vars.php'
-	TOKEN_URL = 'send_token.php'
-	PROTOBOND_URL = 'gen_bond.php'
+	INIT_URL = 'fetch_crypto_vars.php'
+	TOKEN_URL = 'fetch_quote.php'
+	PROTOBOND_URL = 'fetch_protobond.php'
 	LEGAL_URLS = [INIT_URL, TOKEN_URL, PROTOBOND_URL]
 
 	errmsg = 'Unable to connect to server. Please connect and try again.'
@@ -17,8 +24,7 @@ class DryerServer:
 		if url not in DryerServer.LEGAL_URLS:
 			raise ValueError('Need to use a valid URL')
 		try:
-			data = urllib.urlencode(data)
-			response = urllib2.urlopen(DryerServer.BASE_URL + url, data)
+			response = urlopen(DryerServer.BASE_URL + url, urlencode(data))
 		except Exception:
 			Interface.failWaiting(errmsg)
 		try:
@@ -46,14 +52,14 @@ class DryerServer:
 
 	@staticmethod
 	def fetchProtobond(token):
+		if Interface.mock:
+			return CryptoHelper.genProtobond(token)
 		data = DryerServer.load(
 			DryerServer.PROTOBOND_URL,
 			data={'token': token},
-			errmsg='Unable to check server for bond. Please connect and try again.',
+			errmsg='Unable to check server for protobond. Please connect and try again.',
 		)
-		if 'bond' in data:
-			return data['bond']
-		return None
+		return data.get('protobond', None)
 
 class CryptoVars:
 	key = None
@@ -79,91 +85,131 @@ class CryptoVars:
 		del CryptoVars.nonce_inv
 
 class CryptoHelper:
-	'''These all need to be fleshed out.'''
+	OAEP_cipher = None
+	OAEP_delimiter = '|'
+
+	@staticmethod
+	def genCryptoVars():
+		CryptoVars.init(*DryerServer.fetchCryptoVars())
 
 	@staticmethod
 	def importKey(keystr):
-		"""
-		key = RSA.importKey(keystr)
+		key = RSA.importKey(b64decode(keystr))
 		return (key, key.n, key.e)
-		"""
-		key = keystr
-		n = 19265913675216539088843522501252411662825554850796361827227960156161459812318843097684892671824121383601843001515365764542823434062081610090132286593406741078753926537029367904115073634501913394860880829521050873958277983601458665370820723093698021978943905525455260342305112938652009878186489754492929483584194773388463861993225718025085771559343862752795962454563335571465911419218104988342046035221946848331410247421318706697432265231985297965243678514004991110370711468048275031256214816393667064866273111535752732021320957901948229007977761275028310027981536615677558234513453776239448487089967455559204268595079L
-		e = 65537L
-		return (key, n, e)
 
 	@staticmethod
-	def hash(x, k):
-		'''
+	def hash(*args):
 		h = SHA512.new()
-		h.update(k)
-		h.update(x)
+		for arg in args:
+			h.update(arg)
 		return h.digest()
-		'''
-		return k + x
 
 	@staticmethod
-	def OAEP(s0, s1):
-		'''
-		???
-		'''
-		return s0 + s1
+	def genOAEPCipher():
+		if CryptoHelper.OAEP_cipher == None:
+			CryptoHelper.OAEP_cipher = PKCS1_OAEP.new(CryptoVars.key, SHA512)
+		return CryptoHelper.OAEP_cipher
+
+	@staticmethod
+	def OAEP(*args):
+		cipher = CryptoHelper.genOAEPCipher()
+		# NOTE (dannybd): OAEP can only encrypt 382 bytes of input
+		#	with a 4096-bit RSA key. FIX THIS.
+		return cipher.encrypt(CryptoHelper.OAEP_delimiter.join(args))
+
+	# FOR SERVER ONLY
+	@staticmethod
+	def deOAEP(s):
+		cipher = CryptoHelper.genOAEPCipher()
+		return tuple(cipher.decrypt(s).split(CryptoHelper.OAEP_delimiter))
 
 	@staticmethod
 	def genNonce():
-		'''
-		r = Util.number.getRandomRange(0, CryptoVars.n)
-		CryptoVars.nonce_inv = Util.number.inverse(r, CryptoVars.n)
-		return CryptoHelper.encrypt(r)
-		'''
-		r = CryptoHelper.bytesToLong(os.urandom(256)) % CryptoVars.n
-		print '~~~', 'r', r, '~~~'
-		return CryptoHelper.encrypt(r)
+		nonce = CryptoNumber.getRandomRange(0, CryptoVars.n)
+		CryptoVars.nonce_inv = CryptoNumber.inverse(nonce, CryptoVars.n)
+		return CryptoHelper.encrypt(nonce)
 
 	@staticmethod
 	def genToken():
-		x = 'dannybd' # base64.b64encode(os.urandom(256))
+		x = '[Hi there mom]' + os.urandom(256)
 		h0 = CryptoHelper.hash(CryptoVars.k0, x)
-		h1 = CryptoHelper.hash(CryptoVars.k1, x)
-		m = CryptoHelper.OAEP(h0, h1 + x)
+		# h1 = CryptoHelper.hash(CryptoVars.k1, x)
+		m = CryptoHelper.OAEP(h0, x)
 		m = CryptoHelper.bytesToLong(m) % CryptoVars.n
-		r_e = CryptoHelper.genNonce()
-		token = (m * r_e) % CryptoVars.n
+		nonce_e = CryptoHelper.genNonce()
+		nonce_e = nonce_e % CryptoVars.n
+		token = (m * nonce_e) % CryptoVars.n
 		return CryptoHelper.longEncode(token)
 
+	# FOR SERVER ONLY
 	@staticmethod
-	def genBond(protobond):
-		#use CryptoVars.nonce_int to decrypt protobond --> bond
+	def genProtobond(token_str):
+		protobond = CryptoHelper.decrypt(CryptoHelper.longDecode(token_str))
+		return CryptoHelper.longEncode(protobond)
+
+	@staticmethod
+	def genBond(protobond_str):
+		protobond = CryptoHelper.longDecode(protobond_str)
+		bond = (protobond * CryptoVars.nonce_inv) % CryptoVars.n
 		CryptoVars.destroyNonceInv()
-		return protobond[::-1]
+		return CryptoHelper.longEncode(bond)
 
 	@staticmethod
 	def genBondFilename():
 		#use CryptoVars.nonce_int to decrypt protobond --> bond
-		return base64.b16encode(os.urandom(16)) + '.bond'
+		return os.urandom(16).encode('hex').upper() + '.bond'
+
+	# FOR SERVER ONLY
+	@staticmethod
+	def validateBond(bond_str):
+		failure = (False, None)
+		try:
+			bond = CryptoHelper.longDecode(bond_str)
+		except Exception:
+			print 'Not a valid bond: value encoding'
+			return failure
+		bond_e = CryptoHelper.longToBytes(CryptoHelper.encrypt(bond))
+		try:
+			(h, x) = CryptoHelper.deOAEP(bond_e)
+		except Exception:
+			print 'Not a valid bond: OAEP failure'
+			return failure
+		if h == CryptoHelper.hash(CryptoVars.k0, x):
+			print 'Success! Valid bond!'
+			return (True, x)
+		print 'Not a valid bond: hash failure'
+		return (False, x)
 
 	@staticmethod
 	def encrypt(s):
-		return s
+		return CryptoVars.key.encrypt(s, os.urandom(64))[0]
+
+	# FOR SERVER ONLY
+	@staticmethod
+	def decrypt(s):
+		return CryptoVars.key.decrypt(s)
 
 	@staticmethod
 	def bytesToLong(s):
-		'''
-		return Util.number.bytes_to_long(s)
-		'''
-		return int(s.encode('hex'), 16)
+		return CryptoNumber.bytes_to_long(s)
+
+	@staticmethod
+	def longToBytes(n):
+		return CryptoNumber.long_to_bytes(n)
 
 	@staticmethod
 	def longEncode(n):
-		return base64.b64encode(hex(n))
+		return b64encode(hex(n))
 
 	@staticmethod
 	def longDecode(s):
-		return long(base64.b64decode(s), 16)
+		return long(b64decode(s), 16)
 
 class Interface:
 	padding = 4
 	width = 80
+	auto = False
+	mock = False
 
 	@staticmethod
 	def printf(stuff):
@@ -175,9 +221,9 @@ class Interface:
 		s = ' ' * Interface.padding
 		s += action
 		num_dots = max(
-      0,
-      Interface.width - 2 * Interface.padding - len(action) - len('DONE'),
-    )
+			0,
+			Interface.width - 2 * Interface.padding - len(action) - len('DONE'),
+		)
 		s += '.' * num_dots
 		Interface.printf(s)
 
@@ -202,19 +248,26 @@ class Interface:
 		print '\n' * 100
 
 	@staticmethod
-	def run():
+	def run(auto=False, mock=False):
+		Interface.auto = bool(auto)
+		Interface.mock = bool(mock)
+
 		Interface.clear()
 		Interface.header()
 
 		Interface.waitingFor('Connecting to Dryer 21 server')
-		CryptoVars.init(*DryerServer.fetchCryptoVars())
+		CryptoHelper.genCryptoVars()
 		Interface.doneWaiting()
 
 		Interface.waitingFor('Generating token')
 		token = CryptoHelper.genToken()
 		Interface.doneWaiting()
 
-		Interface.tokenInstructions(token)
+		if Interface.auto:
+			Interface.autoSubmit(token)
+		else:
+			Interface.tokenInstructions(token)
+
 		sys.exit(0)
 
 	@staticmethod
@@ -229,6 +282,9 @@ class Interface:
 		print
 		print 'Hello, and welcome to the Dryer 21 Python script!'
 		print
+		if Interface.mock:
+			print 'ENTERING MOCK MODE'
+			print
 
 	@staticmethod
 	def headerText(text):
@@ -275,6 +331,7 @@ class Interface:
 
 	@staticmethod
 	def autoSubmit(token):
+		print
 		print 'Auto-submission selected.'
 		print
 
@@ -293,7 +350,7 @@ class Interface:
 		while protobond == None:
 			Interface.printf('Checking transaction status')
 			for i in range(check_period):
-				time.sleep(1)
+				sleep(1)
 				Interface.printf('.')
 			protobond = DryerServer.fetchProtobond(token)
 			print
@@ -324,6 +381,22 @@ class Interface:
 		print 'Remember to wait a few days before trying to cash in your bond for 0.1BTC.'
 		print 'Thank you for using Dryer 21!'
 		print
+		if Interface.mock:
+			print 'MOCK MODE ONLY: VALIDATION'
+			Interface.waitingFor('Validating bond')
+			(success, x) = CryptoHelper.validateBond(bond)
+			if success:
+				Interface.doneWaiting()
+				print 'Congrats! Here is x:'
+				print
+				print x.decode('utf-8', 'ignore')
+				print
+			elif x:
+				Interface.failWaiting('At least you got x:' + x.decode('utf-8', 'ignore'))
+			else:
+				Interface.failWaiting('So sad')
 
 if __name__ == '__main__':
-	Interface.run()
+	auto = '--auto' in sys.argv[1:]
+	mock = '--mock' in sys.argv[1:]
+	Interface.run(auto, mock)
