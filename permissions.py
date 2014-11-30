@@ -7,6 +7,8 @@ It also chmods everything in /jail to set the bits appropriately.
 
 import os, sys
 
+jail_dir = "/jail/"
+
 # This is a global listing of all the processes we need to launch.
 processes = {}
 
@@ -70,6 +72,17 @@ def format_tables():
 		s.append("%s: UID=%i GID=%i" % (resource.path, resource.uid, resource.gid))
 	return "\n".join(s)
 
+def launch_sequence():
+	print "Setting permissions on resources."
+	for resource in resources.values():
+		path = jail_dir + resource.path
+		uid, gid = resource.uid, resource.gid
+		# Set the owner bits.
+		print "%s <- UID=%i GID=%i" % (path, uid, gid)
+		os.chown(path, uid, gid)
+		# Set the permission bits.
+		os.chmod(path, 0750) # r-xr-x---
+
 # Declare all the processes.
 Process("FrontEnd", "/code/front_end.py")
 Process("QuoteGen", "/code/quote_gen.py", has_rpc=True)
@@ -96,6 +109,16 @@ grant("QuoteGen", "/global/master_public_key")
 grant("Checker", "/global/master_public_key")
 grant("Signer", "/global/master_private_key")
 
-compute_tables()
-print format_tables()
+# If invoked directly, then we print out the tables.
+if __name__ == "__main__":
+	compute_tables()
+	# If passed the single argument --launch, then launch the application.
+	if len(sys.argv) == 2 and sys.argv[1] == "--launch":
+		launch_sequence()
+		exit()
+	# Otherwise, print some information.
+	print "# Usage: permissions.py [--launch]"
+	print "# Prints UID/GID table when run without an argument."
+	print "# If passed --launch, launches the entire application."
+	print format_tables()
 
