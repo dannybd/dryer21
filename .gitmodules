@@ -1,0 +1,3 @@
+[submodule "pybitcointools"]
+	path = pybitcointools
+	url = https://github.com/vbuterin/pybitcointools.git
