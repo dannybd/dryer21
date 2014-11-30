@@ -79,10 +79,10 @@ Process("Checker", "/code/payment_checker.py", has_rpc=True)
 Process("Signer", "/code/token_signer.py", has_rpc=True)
 
 # Declare all the resources.
-Resource("/global/master_public_key")
-Resource("/global/master_private_key")
-Resource("/global/token_public_key")
-Resource("/global/token_private_key")
+Resource("/global/btc_master_public_key") # Used to deterministically generate Bitcoin addresses (without generating the corresponding private keys)
+Resource("/global/btc_master_private_key") # Used with the master public key to deterministically generate Bitcoin addresses with the private keys
+Resource("/global/bond_public_key") # Used to verify bonds
+Resource("/global/bond_private_key") # Used to sign proto-bonds
 
 # Declare which processes have access to which resources.
 grant_rpc("FrontEnd", "QuoteGen")
@@ -92,9 +92,14 @@ grant_rpc("IssueBond", "Checker")
 grant_rpc("IssueBond", "Signer")
 grant_rpc("IssueBond", "Database")
 
-grant("QuoteGen", "/global/master_public_key")
-grant("Checker", "/global/master_public_key")
-grant("Signer", "/global/master_private_key")
+# QuoteGen needs to generate addresses for people to send BTC to. To generate these addresses deterministically it uses the master public key.
+grant("QuoteGen", "/global/btc_master_public_key")
+
+# The checker checks that people have paid. The database stores (for a particular session) the wallet index, not the public key, so that the private key doesn't have to be stored. This means the checker needs to convert from a wallet index to a public key, which requires the Bitcoin master public key.
+grant("Checker", "/global/btc_master_public_key")
+
+# The signer signs proto-bonds, so it needs the private key for signing.
+grant("Signer", "/global/bond_private_key")
 
 compute_tables()
 print format_tables()
