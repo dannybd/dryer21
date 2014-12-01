@@ -53,7 +53,7 @@ class DryerServer:
 	@staticmethod
 	def fetchProtobond(token):
 		if Interface.mock:
-			return CryptoHelper.genProtobond(token)
+			return CryptoServer.genProtobond(token)
 		data = DryerServer.load(
 			DryerServer.PROTOBOND_URL,
 			data={'token': token},
@@ -68,7 +68,10 @@ class CryptoVars:
 	k0 = None
 	k1 = None
 
-	token = None
+	x_tag = '[[6.858]]'
+	x_entropy_bits = 256
+	x_len = x_entropy_bits + len(x_tag)
+
 	nonce_inv = None
 
 	@staticmethod
@@ -86,11 +89,6 @@ class CryptoVars:
 
 class CryptoHelper:
 	OAEP_cipher = None
-	OAEP_delimiter = '|'
-
-	@staticmethod
-	def genCryptoVars():
-		CryptoVars.init(*DryerServer.fetchCryptoVars())
 
 	@staticmethod
 	def importKey(keystr):
@@ -115,13 +113,7 @@ class CryptoHelper:
 		cipher = CryptoHelper.genOAEPCipher()
 		# NOTE (dannybd): OAEP can only encrypt 382 bytes of input
 		#	with a 4096-bit RSA key. FIX THIS.
-		return cipher.encrypt(CryptoHelper.OAEP_delimiter.join(args))
-
-	# FOR SERVER ONLY
-	@staticmethod
-	def deOAEP(s):
-		cipher = CryptoHelper.genOAEPCipher()
-		return tuple(cipher.decrypt(s).split(CryptoHelper.OAEP_delimiter))
+		return cipher.encrypt(''.join(args))
 
 	@staticmethod
 	def genNonce():
@@ -130,64 +122,8 @@ class CryptoHelper:
 		return CryptoHelper.encrypt(nonce)
 
 	@staticmethod
-	def genToken():
-		x = '[Hi there mom]' + os.urandom(256)
-		h0 = CryptoHelper.hash(CryptoVars.k0, x)
-		# h1 = CryptoHelper.hash(CryptoVars.k1, x)
-		m = CryptoHelper.OAEP(h0, x)
-		m = CryptoHelper.bytesToLong(m) % CryptoVars.n
-		nonce_e = CryptoHelper.genNonce()
-		nonce_e = nonce_e % CryptoVars.n
-		token = (m * nonce_e) % CryptoVars.n
-		return CryptoHelper.longEncode(token)
-
-	# FOR SERVER ONLY
-	@staticmethod
-	def genProtobond(token_str):
-		protobond = CryptoHelper.decrypt(CryptoHelper.longDecode(token_str))
-		return CryptoHelper.longEncode(protobond)
-
-	@staticmethod
-	def genBond(protobond_str):
-		protobond = CryptoHelper.longDecode(protobond_str)
-		bond = (protobond * CryptoVars.nonce_inv) % CryptoVars.n
-		CryptoVars.destroyNonceInv()
-		return CryptoHelper.longEncode(bond)
-
-	@staticmethod
-	def genBondFilename():
-		#use CryptoVars.nonce_int to decrypt protobond --> bond
-		return os.urandom(16).encode('hex').upper() + '.bond'
-
-	# FOR SERVER ONLY
-	@staticmethod
-	def validateBond(bond_str):
-		failure = (False, None)
-		try:
-			bond = CryptoHelper.longDecode(bond_str)
-		except Exception:
-			print 'Not a valid bond: value encoding'
-			return failure
-		bond_e = CryptoHelper.longToBytes(CryptoHelper.encrypt(bond))
-		try:
-			(h, x) = CryptoHelper.deOAEP(bond_e)
-		except Exception:
-			print 'Not a valid bond: OAEP failure'
-			return failure
-		if h == CryptoHelper.hash(CryptoVars.k0, x):
-			print 'Success! Valid bond!'
-			return (True, x)
-		print 'Not a valid bond: hash failure'
-		return (False, x)
-
-	@staticmethod
 	def encrypt(s):
 		return CryptoVars.key.encrypt(s, os.urandom(64))[0]
-
-	# FOR SERVER ONLY
-	@staticmethod
-	def decrypt(s):
-		return CryptoVars.key.decrypt(s)
 
 	@staticmethod
 	def bytesToLong(s):
@@ -205,11 +141,86 @@ class CryptoHelper:
 	def longDecode(s):
 		return long(b64decode(s), 16)
 
+	# FOR SERVER ONLY
+	@staticmethod
+	def decrypt(s):
+		return CryptoVars.key.decrypt(s)
+
+	# FOR SERVER ONLY
+	@staticmethod
+	def deOAEP(s):
+		cipher = CryptoHelper.genOAEPCipher()
+		msg = cipher.decrypt(s)
+		h = msg[:-CryptoVars.x_len]
+		x = msg[-CryptoVars.x_len:]
+		return (h, x)
+
+class CryptoClient:
+	@staticmethod
+	def genCryptoVars():
+		CryptoVars.init(*DryerServer.fetchCryptoVars())
+
+	@staticmethod
+	def genToken():
+		x = CryptoVars.x_tag + os.urandom(CryptoVars.x_entropy_bits)
+		h0 = CryptoHelper.hash(CryptoVars.k0, x)
+		# h1 = CryptoHelper.hash(CryptoVars.k1, x)
+		m = CryptoHelper.OAEP(h0, x)
+		m = CryptoHelper.bytesToLong(m) % CryptoVars.n
+		nonce_e = CryptoHelper.genNonce()
+		nonce_e = nonce_e % CryptoVars.n
+		token = (m * nonce_e) % CryptoVars.n
+		return CryptoHelper.longEncode(token)
+
+	@staticmethod
+	def genBond(protobond_str):
+		protobond = CryptoHelper.longDecode(protobond_str)
+		bond = (protobond * CryptoVars.nonce_inv) % CryptoVars.n
+		CryptoVars.destroyNonceInv()
+		return CryptoHelper.longEncode(bond)
+
+	@staticmethod
+	def genBondFilename():
+		#use CryptoVars.nonce_int to decrypt protobond --> bond
+		return os.urandom(16).encode('hex').upper() + '.bond'
+
+# FOR SERVER ONLY
+class CryptoServer:
+	@staticmethod
+	def genProtobond(token_str):
+		protobond = CryptoHelper.decrypt(CryptoHelper.longDecode(token_str))
+		return CryptoHelper.longEncode(protobond)
+
+	@staticmethod
+	def validateBond(bond_str):
+		try:
+			bond = CryptoHelper.longDecode(bond_str)
+		except Exception:
+			return (False, None, 'Not a valid bond: value encoding')
+			return failure
+		bond_e = CryptoHelper.longToBytes(CryptoHelper.encrypt(bond))
+		try:
+			(h, x) = CryptoHelper.deOAEP(bond_e)
+		except ValueError:
+			return (False, None, 'Not a valid bond: OAEP failure')
+		if not x.startswith(CryptoVars.x_tag):
+			return (False, x, 'Not a valid bond: x_tag failure')
+		if h == CryptoHelper.hash(CryptoVars.k0, x):
+			return (True, x, 'Success! Valid bond!')
+		return (False, x, 'Not a vaqlid bond: hash failure')
+
+	@staticmethod
+	def validateBondFromFile(filename):
+		with open(filename, 'r') as f:
+			bond = f.read()
+		return CryptoServer.validateBond(bond)
+
 class Interface:
 	padding = 4
 	width = 80
-	auto = False
-	mock = False
+	auto = None
+	mock = None
+	sysExit = (__name__ == '__main__')
 
 	@staticmethod
 	def printf(stuff):
@@ -237,7 +248,10 @@ class Interface:
 		print
 		print errmsg
 		print
-		sys.exit(2)
+		if Interface.sysExit:
+			sys.exit(2)
+		else:
+			raise NameError('System would normally exit here with error 2')
 
 	@staticmethod
 	def horizontalLine():
@@ -256,11 +270,11 @@ class Interface:
 		Interface.header()
 
 		Interface.waitingFor('Connecting to Dryer 21 server')
-		CryptoHelper.genCryptoVars()
+		CryptoClient.genCryptoVars()
 		Interface.doneWaiting()
 
 		Interface.waitingFor('Generating token')
-		token = CryptoHelper.genToken()
+		token = CryptoClient.genToken()
 		Interface.doneWaiting()
 
 		if Interface.auto:
@@ -268,7 +282,8 @@ class Interface:
 		else:
 			Interface.tokenInstructions(token)
 
-		sys.exit(0)
+		if Interface.sysExit:
+			sys.exit(0)
 
 	@staticmethod
 	def header():
@@ -362,11 +377,11 @@ class Interface:
 	@staticmethod
 	def genBond(protobond):
 		Interface.waitingFor('Generating bond')
-		bond = CryptoHelper.genBond(protobond)
+		bond = CryptoClient.genBond(protobond)
 		Interface.doneWaiting()
 
 		Interface.waitingFor('Saving bond')
-		filename = CryptoHelper.genBondFilename()
+		filename = CryptoClient.genBondFilename()
 		with open(filename, 'w+') as f:
 			f.write(bond)
 		Interface.doneWaiting()
@@ -384,17 +399,17 @@ class Interface:
 		if Interface.mock:
 			print 'MOCK MODE ONLY: VALIDATION'
 			Interface.waitingFor('Validating bond')
-			(success, x) = CryptoHelper.validateBond(bond)
+			(success, x, msg) = CryptoServer.validateBond(bond)
 			if success:
 				Interface.doneWaiting()
-				print 'Congrats! Here is x:'
-				print
-				print x.decode('utf-8', 'ignore')
+				print 'Congrats! x even begins with "' + CryptoVars.x_tag + '"!'
 				print
 			elif x:
 				Interface.failWaiting('At least you got x:' + x.decode('utf-8', 'ignore'))
 			else:
 				Interface.failWaiting('So sad')
+			print msg
+			print
 
 if __name__ == '__main__':
 	auto = '--auto' in sys.argv[1:]
