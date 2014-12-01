@@ -7,6 +7,8 @@ It also chmods everything in /jail to set the bits appropriately.
 
 import os, sys
 
+jail_dir = "/jail/"
+
 # This is a global listing of all the processes we need to launch.
 processes = {}
 
@@ -70,6 +72,17 @@ def format_tables():
 		s.append("%s: UID=%i GID=%i" % (resource.path, resource.uid, resource.gid))
 	return "\n".join(s)
 
+def launch_sequence():
+	print "Setting permissions on resources."
+	for resource in resources.values():
+		path = jail_dir + resource.path
+		uid, gid = resource.uid, resource.gid
+		# Set the owner bits.
+		print "%s <- UID=%i GID=%i" % (path, uid, gid)
+		os.chown(path, uid, gid)
+		# Set the permission bits.
+		os.chmod(path, 0750) # r-xr-x---
+
 # Declare all the processes.
 Process("FrontEnd", "/code/front_end.py")
 Process("QuoteGen", "/code/quote_gen.py", has_rpc=True)
@@ -79,10 +92,10 @@ Process("Checker", "/code/payment_checker.py", has_rpc=True)
 Process("Signer", "/code/token_signer.py", has_rpc=True)
 
 # Declare all the resources.
-Resource("/global/master_public_key")
-Resource("/global/master_private_key")
-Resource("/global/token_public_key")
-Resource("/global/token_private_key")
+Resource("/global/btc_master_public_key") # Used to deterministically generate Bitcoin addresses (without generating the corresponding private keys)
+Resource("/global/btc_master_private_key") # Used with the master public key to deterministically generate Bitcoin addresses with the private keys
+Resource("/global/bond_public_key") # Used to verify bonds
+Resource("/global/bond_private_key") # Used to sign proto-bonds
 
 # Declare which processes have access to which resources.
 grant_rpc("FrontEnd", "QuoteGen")
@@ -92,10 +105,25 @@ grant_rpc("IssueBond", "Checker")
 grant_rpc("IssueBond", "Signer")
 grant_rpc("IssueBond", "Database")
 
-grant("QuoteGen", "/global/master_public_key")
-grant("Checker", "/global/master_public_key")
-grant("Signer", "/global/master_private_key")
+# QuoteGen needs to generate addresses for people to send BTC to. To generate these addresses deterministically it uses the master public key.
+grant("QuoteGen", "/global/btc_master_public_key")
 
-compute_tables()
-print format_tables()
+# The checker checks that people have paid. The database stores (for a particular session) the wallet index, not the public key, so that the private key doesn't have to be stored. This means the checker needs to convert from a wallet index to a public key, which requires the Bitcoin master public key.
+grant("Checker", "/global/btc_master_public_key")
+
+# The signer signs proto-bonds, so it needs the private key for signing.
+grant("Signer", "/global/bond_private_key")
+
+# If invoked directly, then we print out the tables.
+if __name__ == "__main__":
+	compute_tables()
+	# If passed the single argument --launch, then launch the application.
+	if len(sys.argv) == 2 and sys.argv[1] == "--launch":
+		launch_sequence()
+		exit()
+	# Otherwise, print some information.
+	print "# Usage: permissions.py [--launch]"
+	print "# Prints UID/GID table when run without an argument."
+	print "# If passed --launch, launches the entire application."
+	print format_tables()
 
