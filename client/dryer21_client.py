@@ -77,14 +77,15 @@ class DryerServer:
 		If the client is mocking out the response, then pretend to generate the
 		protobond and return that instead.
 		"""
-		if Interface.mock:
-			return CryptoServer.genProtobond(token)
 		data = DryerServer.load(
 			DryerServer.PROTOBOND_URL,
 			data={'token': token},
 			errmsg='Unable to check server for protobond. Please connect and try again.',
 		)
-		return data.get('protobond', None)
+		protobond = data.get('protobond', None)
+		if protobond and Interface.mock:
+			protobond = CryptoServer.genProtobond(token)
+		return protobond
 
 class CryptoVars:
 	"""
