@@ -69,8 +69,8 @@ class CryptoVars:
 	k1 = None
 
 	x_tag = '[[6.858]]'
-	x_entropy_bits = 256
-	x_len = x_entropy_bits + len(x_tag)
+	x_entropy_bytes = 256
+	x_len = x_entropy_bytes + len(x_tag)
 
 	nonce_inv = None
 
@@ -162,7 +162,7 @@ class CryptoClient:
 
 	@staticmethod
 	def genToken():
-		x = CryptoVars.x_tag + os.urandom(CryptoVars.x_entropy_bits)
+		x = CryptoVars.x_tag + os.urandom(CryptoVars.x_entropy_bytes)
 		h0 = CryptoHelper.hash(CryptoVars.k0, x)
 		# h1 = CryptoHelper.hash(CryptoVars.k1, x)
 		m = CryptoHelper.OAEP(h0, x)
