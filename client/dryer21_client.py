@@ -293,7 +293,10 @@ class CryptoClient:
 		"""
 		Create a random 16-byte hex string with a .bond extension for storing bonds
 		"""
-		return os.urandom(16).encode('hex').upper() + '.bond'
+		name = os.urandom(16).encode('hex').upper() + '.bond'
+		if Interface.mock:
+			name = 'mock-' + name
+		return name
 
 	@staticmethod
 	def validateBond(bond_str):
@@ -543,19 +546,19 @@ class Interface:
 	def clear():
 		print '\n' * 100
 
-def stressTest(trials=100):
-	failures = 0
-	errors = []
-	for i in xrange(trials):
-		try:
-			Interface.run(mock=True)
-		except Exception, e:
-			failures += 1
-			errors.append((i, str(e)))
-	print
-	print failures, 'failures out of', trials, 'trials'
-	print errors
-	return errors
+	@staticmethod
+	def stressTest(trials=100):
+		failures = 0
+		errors = []
+		for i in xrange(trials):
+			try:
+				Interface.run(mock=True)
+			except Exception, e:
+				failures += 1
+				errors.append((i, str(e)))
+		print
+		print failures, 'failures out of', trials, 'trials'
+		return errors
 
 # Allows for calling from the command line, as in:
 # $python dryer21_client.py --auto --mock
