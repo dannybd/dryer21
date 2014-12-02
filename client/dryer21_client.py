@@ -562,25 +562,41 @@ class Interface:
 	def clear():
 		print '\n' * 100
 
+	testTrials = None
+	testTrialNum = None
+	testFailures = None
+	testErrors = None
+	testStart = None
+	testEnd = None
+	testDuration = None
+
 	@staticmethod
 	def stressTest(trials=100):
-		failures = 0
-		errors = []
-		before = time()
-		for i in xrange(trials):
-			try:
-				Interface.run(save=False, mock=True)
-			except Exception, e:
-				failures += 1
-				errors.append((i, str(e)))
-		after = time()
-		print
-		Interface.horizontalLine()
-		Interface.horizontalLine()
-		print
-		print failures, 'failures out of', trials, 'trials'
-		print 'Ran for %.3f seconds' % (after - before)
-		print 'Errors:', errors
+		Interface.testTrials = trials
+		Interface.testFailures = 0
+		Interface.testErrors = []
+		Interface.testStart = time()
+		try:
+			for i in xrange(trials):
+				Interface.testTrialNum = i
+				try:
+					Interface.run(save=False, mock=True)
+				except Exception, e:
+					Interface.testFailures += 1
+					Interface.testErrors.append((i, str(e)))
+		except KeyboardInterrupt:
+			trials = i + 1
+		finally:
+			Interface.testEnd = time()
+			Interface.testDuration = Interface.testEnd - Interface.testStart
+			print
+			print
+			Interface.horizontalLine()
+			Interface.horizontalLine()
+			print
+			print Interface.testFailures, 'failures out of', trials, 'trials'
+			print 'Ran for %.3f seconds' % (Interface.testDuration)
+			print 'Errors:', Interface.testErrors
 
 # Allows for calling from the command line, as in:
 # $python dryer21_client.py --mock --nosave
