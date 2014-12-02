@@ -6,7 +6,7 @@ import Crypto.PublicKey.RSA as RSA
 import json
 import os
 import sys
-from time import sleep
+from time import sleep, time
 from urllib import urlencode
 from urllib2 import urlopen
 
@@ -290,14 +290,20 @@ class CryptoClient:
 		return CryptoHelper.longEncode(bond)
 
 	@staticmethod
-	def genBondFilename():
+	def saveBondToFile(bond):
 		"""
-		Create a random 16-byte hex string with a .bond extension for storing bonds
+		Create a random 16-byte hex filename with a .bond extension, store the
+		bond there, and return the filename.
 		"""
-		name = os.urandom(16).encode('hex').upper() + '.bond'
+		filename = os.urandom(16).encode('hex').upper() + '.bond'
 		if Interface.mock:
-			name = 'mock-' + name
-		return name
+			filename = 'mock-' + filename
+		try:
+			with open(filename, 'w+') as f:
+				f.write(bond)
+		except Exception:
+			raise NameError('Failed to save bond to file!')
+		return filename
 
 	@staticmethod
 	def validateBond(bond_str):
@@ -379,14 +385,17 @@ class Interface:
 	padding = 4
 	# Terminal width
 	width = 80
+	# Toggle actually saving bonds into files
+	save = None
 	# Mock out existence of processing server. Makes use of CryptoServer class.
 	mock = None
 
 	@staticmethod
-	def run(mock=False):
+	def run(save=True, mock=False):
 		"""
 		Runs the client interface for bond purchasing.
 		"""
+		Interface.save = bool(save)
 		Interface.mock = bool(mock)
 		# Clear the screen, print the header
 		Interface.clear()
@@ -487,18 +496,24 @@ class Interface:
 		else:
 			Interface.failWaiting(msg)
 
-		Interface.waitingFor('Saving bond')
-		filename = CryptoClient.genBondFilename()
-		with open(filename, 'w+') as f:
-			f.write(bond)
-		Interface.doneWaiting()
+		if Interface.save:
+			Interface.waitingFor('Saving bond')
+			filename = CryptoClient.saveBondToFile(bond)
+			Interface.doneWaiting()
 
-		print
-		Interface.horizontalLine()
-		print
-		print 'Congrats! You have successfully purchased a bond. It has been stored here:'
-		print
-		print os.path.join(os.path.abspath('.'), filename)
+			print
+			Interface.horizontalLine()
+			print
+			print 'Congrats! You have successfully purchased a bond. It has been stored here:'
+			print
+			print os.path.join(os.path.abspath('.'), filename)
+		else:
+			print
+			Interface.horizontalLine()
+			print
+			print 'Congrats! You have successfully purchased a bond. Here it is:'
+			print
+			print bond
 		print
 		print 'Remember to wait a few days before trying to cash in your bond for 0.1BTC.'
 		print 'Thank you for using Dryer 21!'
@@ -551,18 +566,25 @@ class Interface:
 	def stressTest(trials=100):
 		failures = 0
 		errors = []
+		before = time()
 		for i in xrange(trials):
 			try:
-				Interface.run(mock=True)
+				Interface.run(save=False, mock=True)
 			except Exception, e:
 				failures += 1
 				errors.append((i, str(e)))
+		after = time()
+		print
+		Interface.horizontalLine()
+		Interface.horizontalLine()
 		print
 		print failures, 'failures out of', trials, 'trials'
-		return errors
+		print 'Ran for %.3f seconds' % (after - before)
+		print 'Errors:', errors
 
 # Allows for calling from the command line, as in:
-# $python dryer21_client.py --auto --mock
+# $python dryer21_client.py --mock --nosave
 if __name__ == '__main__':
+	save = not ('--nosave' in sys.argv[1:])
 	mock = '--mock' in sys.argv[1:]
-	Interface.run(mock)
+	Interface.run(save=save, mock=mock)
