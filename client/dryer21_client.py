@@ -89,8 +89,7 @@ class DryerServer:
 
 class CryptoVars:
 	"""
-	Stores the variables involved within the crypto processes. Also has a method
-	for destroying the nonce_inv when it is no longer needed.
+	Stores the variables involved within the crypto processes.
 	"""
 	# key, n correspond to the 4096-bit RSA used in the token and bond
 	key = None
@@ -131,17 +130,6 @@ class CryptoVars:
 		CryptoVars.n = n
 		CryptoVars.k = k
 		CryptoVars.OAEP_cipher = PKCS1_OAEP.new(OAEP_key, SHA512)
-
-	@staticmethod
-	def destroyNonceInv():
-		"""
-		The nonce's inverse should be destroyed after use, so we attempt that here.
-		We overwrite the variable's value, then delete it. This isn't perfect, but
-		this part doesn't need to be perfect, only make it much more difficult to
-		recover the nonce inverse.
-		"""
-		CryptoVars.nonce_inv = int(os.urandom(256).encode('hex'), 16)
-		del CryptoVars.nonce_inv
 
 class CryptoHelper:
 	"""
@@ -199,7 +187,6 @@ class CryptoHelper:
 		CryptoVars.nonce_inv = CryptoNumber.inverse(nonce, CryptoVars.n)
 		nonce_e = CryptoHelper.encrypt(nonce)
 		# Destroy the nonce as it is no longer needed.
-		nonce = int(os.urandom(256).encode('hex'), 16)
 		del nonce
 		return nonce_e
 
@@ -285,7 +272,7 @@ class CryptoClient:
 		# BOND = (PROTOBOND * r_inv) = (m^d * r * r_inv) = (m^d) mod n
 		bond = (protobond * CryptoVars.nonce_inv) % CryptoVars.n
 		# The nonce_inv should be destroyed at this stage; it's not needed anymore
-		CryptoVars.destroyNonceInv()
+		del CryptoVars.nonce_inv
 		# Encode the long for storage / display to the user
 		return CryptoHelper.longEncode(bond)
 
