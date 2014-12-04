@@ -406,7 +406,7 @@ class Interface:
 		edge = ' ' * (2 * Interface.padding) + '#' * (Interface.width - 4 * Interface.padding)
 		print
 		print edge
-		print Interface.headerText('DRYER 22 PYTHON SCRIPT')
+		print Interface.headerText('DRYER 21 PYTHON SCRIPT')
 		print Interface.headerText('A Bitcoin Anonymizer')
 		print Interface.headerText('by asuhl, snp, dannybd')
 		print edge
