@@ -81,7 +81,7 @@ def launch_sequence():
 		print "%s <- UID=%i GID=%i" % (path, uid, gid)
 		os.chown(path, uid, gid)
 		# Set the permission bits.
-		os.chmod(path, 0750) # r-xr-x---
+		os.chmod(path, 0750) # r-xr-x--- # FIXME 0750 != r-xr-x---
 
 # Declare all the processes.
 Process("FrontEnd", "/code/front_end.py")

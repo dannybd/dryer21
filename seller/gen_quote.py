@@ -11,7 +11,7 @@ Needs access to:
 """
 import random
 
-from pybitcointools import bitcoin
+import bitcoin
 import db_client
 import global_storage
 
