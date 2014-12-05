@@ -1,6 +1,5 @@
 APIs for things we haven't written yet that we're assuming will exist:
 
 global_storage.get_master_public_key(): Returns the bitcoin master public key.
-db_client.has_token(token): Returns true if this token already exists in the database, false otherwise.
-
-db_client.put(token, index, price, timestamp): Puts an entry into the database
+db_client.get(token): Returns (index, price, timestamp), or None if token isn't in the database. Note that price is in satoshi.
+db_client.put(token, index, price, timestamp): Puts an entry into the database. Throws an error on failure. Note that price is in satoshi.

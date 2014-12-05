@@ -6,7 +6,7 @@ import Crypto.PublicKey.RSA as RSA
 import json
 import os
 import sys
-from time import sleep
+from time import sleep, time
 from urllib import urlencode
 from urllib2 import urlopen
 
@@ -77,26 +77,26 @@ class DryerServer:
 		If the client is mocking out the response, then pretend to generate the
 		protobond and return that instead.
 		"""
-		if Interface.mock:
-			return CryptoServer.genProtobond(token)
 		data = DryerServer.load(
 			DryerServer.PROTOBOND_URL,
 			data={'token': token},
 			errmsg='Unable to check server for protobond. Please connect and try again.',
 		)
-		return data.get('protobond', None)
+		protobond = data.get('protobond', None)
+		if protobond and Interface.mock:
+			protobond = CryptoServer.genProtobond(token)
+		return protobond
 
 class CryptoVars:
 	"""
-	Stores the variables involved within the crypto processes. Also has a method
-	for destroying the nonce_inv when it is no longer needed.
+	Stores the variables involved within the crypto processes.
 	"""
 	# key, n correspond to the 4096-bit RSA used in the token and bond
 	key = None
 	n = None
 	# k is a publicly-known value used to mix with the hash in token generation
 	k = None
-	# OAEP_cipher is also based on 4096-bit RSA, but contains both the public
+	# OAEP_cipher is also based on 4096-bit RSA, and contains both the public
 	# and private key. This is NOT used for encrypting the token or bond, but
 	# instead to encrypt and descrypt the message [OAEP(Hash, k, x) || x)].
 	# We're using PyCrypto for our encryption, and it only provides OAEP as part
@@ -104,19 +104,17 @@ class CryptoVars:
 	# key of the OAEP_cipher publicly, we annul the encryption part of the cipher
 	# but maintain OAEP's all-or-nothing attribute.
 	OAEP_cipher = None
+	# Length of resulting OAEP-encrypted message
+	OAEP_cipher_len = 512
 	# The seed of the message, x, is given a recognizable prefix for further
 	# validation purposes
 	x_prefix = '[[BITCOIN BOND]]'
 	x_entropy_bytes = 256
 	x_len = x_entropy_bytes + len(x_prefix)
-	# The message, m, is also given a (longer) prefix, for providing a first-step
+	# The message, m, is also given a prefix, for providing a first-step
 	# validation with a high degree of confidence that this is an actual signed
 	# bond
 	msg_prefix = x_prefix
-	msg_prefix_ = (
-		'To validate this bond, confirm that everything after this message ' +
-		'is of the form OAEP(Hash(k, x) || x). EOM'
-	)
 	# Holds the inverse of the nonce, for generating the bond from the protobond.
 	# Needs to be destroyed after use, so we're storing it as a value here and not
 	# passing it as an argument between frames to minimize copies in memory.
@@ -132,17 +130,6 @@ class CryptoVars:
 		CryptoVars.n = n
 		CryptoVars.k = k
 		CryptoVars.OAEP_cipher = PKCS1_OAEP.new(OAEP_key, SHA512)
-
-	@staticmethod
-	def destroyNonceInv():
-		"""
-		The nonce's inverse should be destroyed after use, so we attempt that here.
-		We overwrite the variable's value, then delete it. This isn't perfect, but
-		this part doesn't need to be perfect, only make it much more difficult to
-		recover the nonce inverse.
-		"""
-		CryptoVars.nonce_inv = int(os.urandom(256).encode('hex'), 16)
-		del CryptoVars.nonce_inv
 
 class CryptoHelper:
 	"""
@@ -175,7 +162,10 @@ class CryptoHelper:
 		# OAEP can only encrypt 382 bytes of input with a 4096-bit RSA key.
 		if len(s) > 382:
 			raise NameError('OAEP input is too long (>382 bytes)')
-		return CryptoVars.OAEP_cipher.encrypt(s)
+		encrypted = CryptoVars.OAEP_cipher.encrypt(s)
+		if len(encrypted) != CryptoVars.OAEP_cipher_len:
+			raise ValueError('OAEP cipher length is incorrect. Please try again.')
+		return encrypted
 
 	@staticmethod
 	def deOAEP(s):
@@ -195,7 +185,10 @@ class CryptoHelper:
 		nonce = CryptoNumber.getRandomRange(0, CryptoVars.n)
 		# The inverse of the nonce is stored for later use as protobond --> bond
 		CryptoVars.nonce_inv = CryptoNumber.inverse(nonce, CryptoVars.n)
-		return CryptoHelper.encrypt(nonce)
+		nonce_e = CryptoHelper.encrypt(nonce)
+		# Destroy the nonce as it is no longer needed.
+		del nonce
+		return nonce_e
 
 	@staticmethod
 	def encrypt(s):
@@ -259,7 +252,9 @@ class CryptoClient:
 		# m = OAEP(PREFIX || Hash(k, x) || x)
 		m = CryptoHelper.OAEP(CryptoVars.msg_prefix + h + x)
 		# Convert to a long mod n
-		m = CryptoHelper.bytesToLong(m) % CryptoVars.n
+		m = CryptoHelper.bytesToLong(m)
+		if m != (m % CryptoVars.n):
+			raise ValueError('m is too big!')
 		# Generate (r^e) mod n, also (r^-1) mod n [stored as CryptoVars.nonce_inv]
 		nonce_e = CryptoHelper.genNonce() % CryptoVars.n
 		# Token = (m*r^e) mod n
@@ -277,16 +272,25 @@ class CryptoClient:
 		# BOND = (PROTOBOND * r_inv) = (m^d * r * r_inv) = (m^d) mod n
 		bond = (protobond * CryptoVars.nonce_inv) % CryptoVars.n
 		# The nonce_inv should be destroyed at this stage; it's not needed anymore
-		CryptoVars.destroyNonceInv()
+		del CryptoVars.nonce_inv
 		# Encode the long for storage / display to the user
 		return CryptoHelper.longEncode(bond)
 
 	@staticmethod
-	def genBondFilename():
+	def saveBondToFile(bond):
 		"""
-		Create a random 16-byte hex string with a .bond extension for storing bonds
+		Create a random 16-byte hex filename with a .bond extension, store the
+		bond there, and return the filename.
 		"""
-		return os.urandom(16).encode('hex').upper() + '.bond'
+		filename = os.urandom(16).encode('hex').upper() + '.bond'
+		if Interface.mock:
+			filename = 'mock-' + filename
+		try:
+			with open(filename, 'w+') as f:
+				f.write(bond)
+		except Exception:
+			raise NameError('Failed to save bond to file!')
+		return filename
 
 	@staticmethod
 	def validateBond(bond_str):
@@ -302,6 +306,8 @@ class CryptoClient:
 			return (False, None, 'Not a valid bond: value encoding')
 		# BOND^E = m^d^e = m
 		msg = CryptoHelper.longToBytes(CryptoHelper.encrypt(bond))
+		# Since OAEP is all-or-nothing, we need to restore the leading zero bytes
+		msg = msg.rjust(CryptoVars.OAEP_cipher_len, chr(0))
 		# Try to decrypt OAEP format --> (PREFIX || Hash(h, x) || x)
 		try:
 			msg = CryptoHelper.deOAEP(msg)
@@ -322,7 +328,7 @@ class CryptoClient:
 			return (False, x, 'Not a valid bond: hash failure')
 		# Huzzah! It's valid!
 		return (True, x, 'Success! Valid bond!')
-	
+
 	@staticmethod
 	def validateBondFromFile(filename):
 		"""
@@ -360,23 +366,23 @@ class CryptoServer:
 class Interface:
 	"""
 	Handles the client interface, with all of its bells and whistles.
-	Usage: Interface.run(auto=False, mock=False)
+	Usage: Interface.run(mock=False)
 	"""
 	# Defines space-based indentation
 	padding = 4
 	# Terminal width
 	width = 80
-	# Try to submit token for bond quote and check for protobond automatically
-	auto = None
+	# Toggle actually saving bonds into files
+	save = None
 	# Mock out existence of processing server. Makes use of CryptoServer class.
 	mock = None
 
 	@staticmethod
-	def run(auto=False, mock=False):
+	def run(save=True, mock=False):
 		"""
 		Runs the client interface for bond purchasing.
 		"""
-		Interface.auto = bool(auto)
+		Interface.save = bool(save)
 		Interface.mock = bool(mock)
 		# Clear the screen, print the header
 		Interface.clear()
@@ -389,12 +395,8 @@ class Interface:
 		Interface.waitingFor('Generating token')
 		token = CryptoClient.genToken()
 		Interface.doneWaiting()
-		# Jump to automatic submission if Interface.auto
-		if Interface.auto:
-			Interface.autoSubmit(token)
-		# Otherwise ask the user
-		else:
-			Interface.tokenInstructions(token)
+		# Jump to automatic submission
+		Interface.autoSubmit(token)
 
 	@staticmethod
 	def header():
@@ -404,7 +406,7 @@ class Interface:
 		edge = ' ' * (2 * Interface.padding) + '#' * (Interface.width - 4 * Interface.padding)
 		print
 		print edge
-		print Interface.headerText('DRYER 22 PYTHON SCRIPT')
+		print Interface.headerText('DRYER 21 PYTHON SCRIPT')
 		print Interface.headerText('A Bitcoin Anonymizer')
 		print Interface.headerText('by asuhl, snp, dannybd')
 		print edge
@@ -421,53 +423,9 @@ class Interface:
 		Center the given text for the header block.
 		"""
 		s = ' ' * (2 * Interface.padding) + '##'
-		total_spaces = max(2, Interface.width - 2 * len(s) - len(text))
-		left_spaces = total_spaces / 2
-		s += ' ' * left_spaces
-		s += text
-		s += ' ' * (total_spaces - left_spaces) + '##'
+		s += text.center(max(2, Interface.width - 2 * len(s)))
+		s += '##'
 		return s
-
-	@staticmethod
-	def tokenInstructions(token):
-		"""
-		We need the user to tell us how they want to proceed with their generated
-		token. We display the token to the user, and offer to submit it on their
-		behalf.
-		"""
-		print
-		print 'Please copy the following token into your browser:'
-		print
-		print token
-		print
-		Interface.horizontalLine()
-		print
-		print 'Type \'c\' to continue, or \'p\' to submit via Python.'
-		user_input = raw_input('(c or p, then Enter) > ')
-		while len(user_input) < 1 or user_input[0] not in 'cp':
-			print
-			print 'Sorry, that is not a valid entry.'
-			print 'Type \'c\' to continue, or \'p\' to submit via Python.'
-			user_input = raw_input('(c or p, then Enter) > ')
-		print
-		if user_input == 'c':
-			Interface.waitForProtobond()
-		elif user_input == 'p':
-			Interface.autoSubmit(token)
-
-	@staticmethod
-	def waitForProtobond():
-		"""
-		The user has decided to send the token themself, and thus waits for the
-		protobond. Provide a region for pasting said protobond so we can continue.
-		"""
-		print 'Paste the text from Step 4 below, and press Enter:'
-		print
-		protobond = raw_input()
-		print
-		Interface.horizontalLine()
-		print
-		Interface.genBond(protobond)
 
 	@staticmethod
 	def autoSubmit(token):
@@ -518,35 +476,35 @@ class Interface:
 		bond = CryptoClient.genBond(protobond)
 		Interface.doneWaiting()
 
-		Interface.waitingFor('Saving bond')
-		filename = CryptoClient.genBondFilename()
-		with open(filename, 'w+') as f:
-			f.write(bond)
-		Interface.doneWaiting()
+		Interface.waitingFor('Validating bond')
+		(success, x, msg) = CryptoClient.validateBond(bond)
+		if success:
+			Interface.doneWaiting()
+		else:
+			Interface.failWaiting(msg)
 
-		print
-		Interface.horizontalLine()
-		print
-		print 'Congrats! You have successfully generated a bond. It has been stored here:'
-		print
-		print os.path.join(os.path.abspath('.'), filename)
+		if Interface.save:
+			Interface.waitingFor('Saving bond')
+			filename = CryptoClient.saveBondToFile(bond)
+			Interface.doneWaiting()
+
+			print
+			Interface.horizontalLine()
+			print
+			print 'Congrats! You have successfully purchased a bond. It has been stored here:'
+			print
+			print os.path.join(os.path.abspath('.'), filename)
+		else:
+			print
+			Interface.horizontalLine()
+			print
+			print 'Congrats! You have successfully purchased a bond. Here it is:'
+			print
+			print bond
 		print
 		print 'Remember to wait a few days before trying to cash in your bond for 0.1BTC.'
 		print 'Thank you for using Dryer 21!'
 		print
-		# The following only runs if Interface.mock
-		if Interface.mock:
-			print 'MOCK MODE ONLY: VALIDATION'
-			Interface.waitingFor('Validating bond')
-			(success, x, msg) = CryptoClient.validateBond(bond)
-			if success:
-				Interface.doneWaiting()
-				print 'Congrats!'
-				print
-			else:
-				Interface.failWaiting(msg)
-			print msg
-			print
 
 	@staticmethod
 	def printf(stuff):
@@ -564,12 +522,7 @@ class Interface:
 		With the anticipation of 'DONE' being written at the end.
 		"""
 		s = ' ' * Interface.padding
-		s += action
-		num_dots = max(
-			0,
-			Interface.width - 2 * Interface.padding - len(action) - len('DONE'),
-		)
-		s += '.' * num_dots
+		s += action.ljust(Interface.width - 2 * Interface.padding - 4, '.')
 		Interface.printf(s)
 
 	@staticmethod
@@ -596,9 +549,45 @@ class Interface:
 	def clear():
 		print '\n' * 100
 
+	testTrials = None
+	testTrialNum = None
+	testFailures = None
+	testErrors = None
+	testStart = None
+	testEnd = None
+	testDuration = None
+
+	@staticmethod
+	def stressTest(trials=100):
+		Interface.testTrials = trials
+		Interface.testFailures = 0
+		Interface.testErrors = []
+		Interface.testStart = time()
+		try:
+			for i in xrange(trials):
+				Interface.testTrialNum = i
+				try:
+					Interface.run(save=False, mock=True)
+				except Exception, e:
+					Interface.testFailures += 1
+					Interface.testErrors.append((i, str(e)))
+		except KeyboardInterrupt:
+			trials = i + 1
+		finally:
+			Interface.testEnd = time()
+			Interface.testDuration = Interface.testEnd - Interface.testStart
+			print
+			print
+			Interface.horizontalLine()
+			Interface.horizontalLine()
+			print
+			print Interface.testFailures, 'failures out of', trials, 'trials'
+			print 'Ran for %.3f seconds' % (Interface.testDuration)
+			print 'Errors:', Interface.testErrors
+
 # Allows for calling from the command line, as in:
-# $python dryer21_client.py --auto --mock
+# $python dryer21_client.py --mock --nosave
 if __name__ == '__main__':
-	auto = '--auto' in sys.argv[1:]
+	save = not ('--nosave' in sys.argv[1:])
 	mock = '--mock' in sys.argv[1:]
-	Interface.run(auto, mock)
+	Interface.run(save=save, mock=mock)

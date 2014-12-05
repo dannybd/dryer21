@@ -84,7 +84,7 @@ def launch_sequence():
 		print "%s <- UID=%i GID=%i" % (path, uid, gid)
 		os.chown(path, uid, gid)
 		# Set the permission bits.
-		os.chmod(path, 0750) # r-xr-x---
+		os.chmod(path, 0750) # r-xr-x--- # FIXME 0750 != r-xr-x---
 	print "Spawning processes."
 	for process in processes.values():
 		if os.fork() == 0:
