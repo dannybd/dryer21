@@ -7,7 +7,10 @@ It also chmods everything in /jail to set the bits appropriately.
 
 import os, sys
 
-jail_dir = "/jail/"
+JAIL_DIR = "/jail/"
+
+# This is a special user we promise will never have any privs for anything.
+NO_PRIVS = 999999
 
 # This is a global listing of all the processes we need to launch.
 processes = {}
@@ -75,13 +78,22 @@ def format_tables():
 def launch_sequence():
 	print "Setting permissions on resources."
 	for resource in resources.values():
-		path = jail_dir + resource.path
+		path = JAIL_DIR + resource.path
 		uid, gid = resource.uid, resource.gid
 		# Set the owner bits.
 		print "%s <- UID=%i GID=%i" % (path, uid, gid)
 		os.chown(path, uid, gid)
 		# Set the permission bits.
 		os.chmod(path, 0750) # r-xr-x--- # FIXME 0750 != r-xr-x---
+	print "Spawning processes."
+	for process in processes.values():
+		if os.fork() == 0:
+			# Drop permissions.
+			os.setresgid(NO_PRIVS, NO_PRIVS, NO_PRIVS)
+			os.setgroups(process.groups)
+			os.setresuid(process.uid, process.uid, process.uid)
+			# Now launch.
+			os.execve(process.binary_path, (), {})
 
 # Declare all the processes.
 Process("FrontEnd", "/code/front_end.py")
