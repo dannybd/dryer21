@@ -26,7 +26,7 @@ def gen_quote(token, mpk=None):
 	
 	index is used with the master public key (mpk) to generate the address.
 
-	price is in milliBTC.
+	price is in satoshi.
 	"""
 	if mpk == None:
 		mpk = global_storage.get_master_public_key() # Get master public key if it isn't passed in
@@ -43,8 +43,8 @@ def gen_quote(token, mpk=None):
 		# Index is a large random number that combines with the master public key to yield the address. This combination takes constant time -- it doesn't hurt us to use a very large index. An attacker which knows index, mpk, address, and the _private_ key for address can get the private key for _any_ public key generated using mpk. To limit the damage if one private key gets leaked, we'll make index cryptographically securely random, even though it's probably unnecessary.
 		index = random.SystemRandom().getrandbits(128)
 		address = bitcoin.electrum_address(mpk, index)
-		# Price is the price to buy a bond, in milliBTC. (We don't use BTC because we don't want floating point errors.)
-		price = 100 # 0.1 BTC -- for now, no markup. In the future this may change based on transaction costs, overhead, greediness, etc.
+		# Price is the price to buy a bond, in satoshi. (We don't use BTC because we don't want floating point errors.)
+		price = 10 ** 7 # 0.1 BTC -- for now, no markup. In the future this may change based on transaction costs, overhead, greediness, etc.
 		timestamp = long(time.time())
 		db_client.put(token, index, price, timestamp)
 		return (address, price)
