@@ -21,4 +21,5 @@ def urlopen(url):
 		return sock
 	socket.create_connection = create_connection
 	# Now all sockets we open will use Tor.
+	import urllib2
 	return urllib2.urlopen(url)
