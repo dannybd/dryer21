@@ -1,8 +1,9 @@
 APIs for things we haven't written yet that we're assuming will exist:
 
 global_storage.get_master_public_key(): Returns the bitcoin master public key.
-db_client.get(token): Returns a database entry for token.
-db_client.put(token=..., index=..., address=..., price=..., timestamp=...): Puts an entry into the database. Fields are passed in as keyword arguments. Throws an error on failure.
+db_rpcclient.get(token): Returns a database entry for token, or None if no such token is in the database.
+db_rpcclient.put(token=..., index=..., address=..., price=...): Puts an entry into the database. Fields are passed in as keyword arguments. db is responsible for setting the timestamp. Throws an error on failure.
+db_rpcclient.mark_protobond_sent(token=...): Increments a counter / sets a flag saying that we've sent this protobond. Useful for db pruning.
 
 Database entry is a dictionary with the following entries:
 	token, index, address, price (in satoshi), timestamp

@@ -11,15 +11,19 @@ Requires:
 import db_rpcclient
 import check_rpcclient
 import sign_rpcclient
+import rpclib
 
 @expose_rpc
 def issue_protobond(token):
 	"""
 	
 	"""
-	index_price_timestamp = db_rpcclient.get(token)
-	if index_price_timestamp == None:
-		return "ERROR: No such token in database."
-	index, price, timestamp = index_price_timestamp
-	
-	
+	dbentry = db_rpcclient.get(token=token)
+	if dbentry == None:
+		raise rpclib.RPCException("No such token in database.")
+	address, price = dbentry['address'], dbentry['price']
+	if not check_rpcclient.check(address=address, price=price):
+		raise rpclib.RPCException("Payment not received.")
+	protobond = sign_rpcclient.sign(token=token)
+	db_rpcclient.mark_protobond_sent(token=token) # Just a useful flag for database pruning
+	return protobond
