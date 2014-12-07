@@ -15,7 +15,7 @@ import bitcoin
 import db_client
 import global_storage
 
-# Expose only this method to the frontend:
+@expose_rpc
 def gen_quote(token, mpk=None):
 	"""
 	Given a token, adds (token, index, price, timestamp) to the database, and returns (addr, price)
@@ -38,7 +38,6 @@ def gen_quote(token, mpk=None):
 	if index_price_timestamp != None: # This token is already in the database.
 		index, price, timestamp = index_price_timestamp
 		address = bitcoin.electrum_address(mpk, index)
-		return (address, price)
 	else:
 		# Index is a large random number that combines with the master public key to yield the address. This combination takes constant time -- it doesn't hurt us to use a very large index. An attacker which knows index, mpk, address, and the _private_ key for address can get the private key for _any_ public key generated using mpk. To limit the damage if one private key gets leaked, we'll make index cryptographically securely random, even though it's probably unnecessary.
 		index = random.SystemRandom().getrandbits(128)
@@ -47,4 +46,4 @@ def gen_quote(token, mpk=None):
 		price = 10 ** 7 # 0.1 BTC -- for now, no markup. In the future this may change based on transaction costs, overhead, greediness, etc.
 		timestamp = long(time.time())
 		db_client.put(token, index, price, timestamp)
-		return (address, price)
+	return (address, price)
