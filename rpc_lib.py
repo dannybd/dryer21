@@ -2,35 +2,24 @@
 rpc_lib.py
 """
 
-import os, sys, json, socket, functools
+import os, sys, json, socket, functools, threading
 import SocketServer
 
-# If a client imports rpc_lib.py they see these two functions.
+# These two functions are the API used for declaring an RPC server.
 def set_rpc_socket_path(socket_path):
-	global global_rpc_client
-	# Create an RPC client for the given
-	global_rpc_client = RPCClient(socket_path)
-
-def expose_rpc(function):
-	# Return a stub that calls into our RPC client.
-	@functools.wraps(function)
-	def stub(**kwargs):
-		return global_rpc_client.call(function.func_name, kwargs)
-	return stub
-
-# However, when running in server mode, these two functions are used instead.
-def server_mode_set_rpc_socket_path(socket_path):
 	global global_socket_path
 	global_socket_path = socket_path
 
 global_rpc_table = {}
-def server_mode_expose_rpc(function):
+def expose_rpc(function):
 	global_rpc_table[function.func_name] = function
 
 # This exception is transparently passed across the RPC boundary.
 # Raise it in your handlers to signal callers.
 class RPCException(Exception):
 	pass
+
+global_rpc_server_lock = threading.Lock()
 
 class RPCRequestHandler(SocketServer.StreamRequestHandler):
 	def handle(self):
@@ -40,20 +29,23 @@ class RPCRequestHandler(SocketServer.StreamRequestHandler):
 			# They will kill this handler, but be handled gracefully by SocketServer.
 			line = self.rfile.readline().strip().decode("hex")
 			method, kwargs = json.loads(line)
-			# Look up the method in our RPC table.
-			function = global_rpc_table[method]
-			try:
-				# Perform the actual RPC call.
-				return_value = function(**kwargs)
-				message = ("good", return_value)
-			except RPCException, e:
-				# In case of an RPC Exception, signal to the caller that something bad happened.
-				message = ("bad", e.message)
-			# Send message back as a JSON object over the RPC link.
-			data = json.dumps(message).encode("hex")
-			self.wfile.write(data + "\n")
-			self.wfile.flush()
+			with global_rpc_server_lock:
+				print "Call to %r on %r" % (method, kwargs)
+				# Look up the method in our RPC table.
+				function = global_rpc_table[method]
+				try:
+					# Perform the actual RPC call.
+					return_value = function(**kwargs)
+					message = ("good", return_value)
+				except RPCException, e:
+					# In case of an RPC Exception, signal to the caller that something bad happened.
+					message = ("bad", e.message)
+				# Send message back as a JSON object over the RPC link.
+				data = json.dumps(message).encode("hex")
+				self.wfile.write(data + "\n")
+				self.wfile.flush()
 
+# This class is the entirety of the API for declaring an RPC client.
 class RPCClient:
 	def __init__(self, socket_path):
 		self.socket_path = socket_path
@@ -74,12 +66,15 @@ class RPCClient:
 			raise RPCException(result)
 		raise Exception("Protocol violation!")
 
+	def make_stub(self, method):
+		# Return a stub that calls into the closed-over RPC client.
+		def rpc_stub(**kwargs):
+			return self.call(method, kwargs)
+		return rpc_stub
+
 def launch_rpc_server(import_name):
 	# Prevent a double import issue, where one copy is called __main__, and the other is rpc_lib.
 	sys.modules["rpc_lib"] = sys.modules[__name__]
-	global set_rpc_socket_path, expose_rpc
-	set_rpc_socket_path = server_mode_set_rpc_socket_path
-	expose_rpc = server_mode_expose_rpc
 	# Now import the desired module, to scoop up the actual code we are offering over RPC.
 	# This also has the side effect of setting global_socket_path.
 	__import__(import_name)
@@ -91,7 +86,7 @@ def launch_rpc_server(import_name):
 	except OSError:
 		pass
 	# Now launch the server.
-	server = SocketServer.UnixStreamServer(global_socket_path, RPCRequestHandler)
+	server = SocketServer.ThreadingUnixStreamServer(global_socket_path, RPCRequestHandler)
 	server.serve_forever()
 
 if __name__ == "__main__":
