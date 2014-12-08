@@ -13,8 +13,8 @@ class DryerServer:
 	"""
 	Handles connections to the server, and interpretations of the responses.
 	"""
-	BASE_URL = 'http://asym3f2krhdh7mzx.onion/'
-	MOCK_BASE_URL = 'http://dannybd.mit.edu/6.858/'
+	BASE_URL = 'http://dryer4xxsgccsbec.onion/'
+	MOCK_BASE_URL = 'http://dannybd.mit.edu/dryer21_seller/'
 	CONNECT_URL = 'connect'
 	QUOTE_URL = 'quote'
 	PROTOBOND_URL = 'protobond'
