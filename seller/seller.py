@@ -1,12 +1,12 @@
 from flask import Flask
-from flask import make_response, render_template, request, json
+from flask import make_response, render_template, request, json, url_for
 jsonify = json.jsonify
 
 app = Flask(__name__)
 
 @app.route('/')
 def index():
-	return render_template('index.html')
+	return render_template('seller.html')
 
 @app.route('/connect', methods=['GET', 'POST'])
 def fetch_init():
