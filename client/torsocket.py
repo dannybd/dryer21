@@ -3,12 +3,13 @@ torsocket.py: Provides methods for making connections through tor.
 """
 import socks
 import socket
+import urllib2
 
 def starttor():
 	print "torsocket.starttor: NOT IMPLEMENTED YET"
 	pass
 
-def urlopen(url):
+def urlopen(*args, **kwargs):
 	"""
 		urlopen: a wrapper around urllib2.urlopen that passes the request through tor.
 	"""
@@ -21,5 +22,4 @@ def urlopen(url):
 		return sock
 	socket.create_connection = create_connection
 	# Now all sockets we open will use Tor.
-	import urllib2
-	return urllib2.urlopen(url)
+	return urllib2.urlopen(*args, **kwargs)
