@@ -1,0 +1,2 @@
+Limitations:
+- This implementation relies on blockchain.info for information about wallet balances. This means that the runners of blockchain.info could easily steal all our money. Were we actually running this service for real we'd instead have a bitcoin client running on the server with a local copy of the blockchain. Additionally this implementation doesn't check that a transaction has confirmed yet. Again, were we running the service for real we'd be sure the transactions had confirmed.
