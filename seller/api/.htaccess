@@ -1,7 +1,0 @@
-<Files *>
-    SetHandler None
-</Files>
-
-<Files test.py>
-	SetHandler cgi-script
-</Files>

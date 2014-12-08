@@ -15,10 +15,10 @@ class DryerServer:
 	"""
 	BASE_URL = 'http://asym3f2krhdh7mzx.onion/'
 	MOCK_BASE_URL = 'http://dannybd.mit.edu/6.858/'
-	INIT_URL = 'init'
+	CONNECT_URL = 'connect'
 	QUOTE_URL = 'quote'
 	PROTOBOND_URL = 'protobond'
-	LEGAL_URLS = [INIT_URL, QUOTE_URL, PROTOBOND_URL]
+	LEGAL_URLS = [CONNECT_URL, QUOTE_URL, PROTOBOND_URL]
 
 	errmsg = 'Unable to connect to server. Please connect and try again.'
 
@@ -46,12 +46,12 @@ class DryerServer:
 			Interface.failWaiting('JSON error in returned data.')
 
 	@staticmethod
-	def fetchInit():
+	def fetchConnect():
 		"""
 		Initial connectivity test to the server.
 		"""
 		data = DryerServer.load(
-			url=DryerServer.INIT_URL,
+			url=DryerServer.CONNECT_URL,
 			data={'mock': Interface.mock},
 		)
 		if Interface.mock:
@@ -232,7 +232,7 @@ class CryptoClient:
 		"""
 		Connects to server
 		"""
-		DryerServer.fetchInit()
+		DryerServer.fetchConnect()
 
 	@staticmethod
 	def genToken():
@@ -294,7 +294,7 @@ class CryptoClient:
 		"""
 		Bond validation needs to happen server-side, but there's not reason why the
 		client can't also verify that they have received a valid bond.
-		BOND = m^d, m = OAEP(PREFIX || Hash(n, x) || x).
+ 		BOND = m^d, m = OAEP(PREFIX || Hash(n, x) || x).
 		"""
 		# Make sure the bond holds a number
 		try:

@@ -8,7 +8,7 @@ app = Flask(__name__)
 def index():
 	return render_template('index.html')
 
-@app.route('/init', methods=['GET', 'POST'])
+@app.route('/connect', methods=['GET', 'POST'])
 def fetch_init():
 	return jsonify(success=True)
 
@@ -17,6 +17,7 @@ def fetch_quote():
 	token = request.args.get('token', None)
 	mock = False
 	try:
+		# FIXME: Use RPC once available
 		from gen_quote import gen_quote
 		(addr, price) = gen_quote(token=token)
 	except Exception, e:
@@ -30,6 +31,7 @@ def fetch_protobond():
 	token = request.args.get('token', None)
 	mock = False
 	try:
+		# FIXME: Use RPC once available
 		from issue_protobond import issue_protobond
 		protobond = issue_protobond(token)
 	except Exception, e:
