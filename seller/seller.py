@@ -4,15 +4,21 @@ jsonify = json.jsonify
 
 app = Flask(__name__)
 
+app.add_url_rule(
+	'/favicon.ico',
+	redirect_to=url_for('static', filename='favicon.ico')
+)
+
 @app.route('/')
 def index():
 	return render_template('seller.html')
 
 @app.route('/connect', methods=['GET', 'POST'])
-def fetch_init():
+def fetch_connect():
 	return jsonify(success=True)
 
-@app.route('/quote', methods=['POST'])
+# FIXME: Don't use GET
+@app.route('/quote', methods=['GET', 'POST'])
 def fetch_quote():
 	token = request.args.get('token', None)
 	mock = False
@@ -26,7 +32,8 @@ def fetch_quote():
 	finally:
 		return jsonify(token=token,addr=addr,price=price,mock=mock)
 
-@app.route('/protobond', methods=['POST'])
+# FIXME: Don't use GET
+@app.route('/protobond', methods=['GET', 'POST'])
 def fetch_protobond():
 	token = request.args.get('token', None)
 	mock = False
