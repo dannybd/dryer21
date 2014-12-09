@@ -1,64 +1,25 @@
-<!doctype html>
-<html lang="en-us">
-<head>
-  <meta charset="utf-8">
-  <title>Dryer 21: A Bitcoin Anonymizer</title>
-  <meta name="description" content="Bitcoins go in, bitcoins come out: we can't explain that." />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    html, body, h1, h2, h3 {margin: 0;}
-    body {
-      background-color: #76450D;
-			font-family: Arial, sans-serif;
-    }
-    header {
-      background-color: #FFFFFF;
-      margin: 20px 0;
-      padding: 20px 0;
-      text-align: center;
-    }
-    main {
-      background-color: #FFFFFF;
-      margin-left: calc(50% - 420px);
-      padding: 20px;
-      width: 800px;
-			line-spacing: 1.3em;
-    }
-    a {
-			text-decoration: none;
-			font-weight: bold;
-		}
-  </style>
-</head>
-<body>
-<header>
-  <h1>Dryer 21: A Bitcoin Anonymizer, or:</h1>
-  <h2>"Bitcoins go in, bitcoins come out&mdash;never a miscommunication"</h2>
-  <h3>A 6.858 Project by asuhl, snp, dannybd</h3>
-</header>
-<main>
-	<h2 style="display: inline;">Bond Redeemer</h2>
-	<span style="padding-left: 20px;">
-		(If you do not have a bond yet, you can purchase one here: <a href="http://dryer4xxsgccsbec.onion/">Dryer 21 Seller</a>)
-	</span>
-	<hr>
-	<h3 id="using">Redeeming a Dryer 21 Bond</h3>
-	<form action="bond" method="post" enctype="multipart/form-data">
-		<p>
-			<label for="bond_file">Choose your .bond file:</label> <input type="file" name="bond_file" accept=".bond" required><br>
-			<label for="to_addr">Enter your destination bitcoin address:</label> <input type="text" name="to_addr" required><br>
-			<input type="submit" name="redeem" value="Redeem Bond">
-		</p>
-	</form>
-	<h3 id="about">What is this?</h3>
+{% extends 'layout.html' %}
+{% block main %}
+<h2 style="display: inline;">Bond Redeemer</h2>
+<span style="padding-left: 20px;">
+	(If you do not have a bond yet, you can purchase one here: <a href="http://dryer4xxsgccsbec.onion/">Dryer 21 Seller</a>)
+</span>
+<hr>
+<h3 id="using">Redeeming a Dryer 21 Bond</h3>
+<form action="bond" method="post" enctype="multipart/form-data">
 	<p>
-		We provide a Tor hidden service for anonymizing bitcoin transactions while preventing even our own server from linking from and to addresses. We accomplish this through the use of "bitcoin bonds", generated through a process known as blind signing. This allows a users to purchase and redeem bonds, without us (the server) being able to link sold and redeemed bonds. Such a setup has allows Alice to send Bob a bond's worth of bitcoin, without:
-		<ul>
-			<li>Alice learning Bob's bitcoin address,</li>
-			<li>Bob learning Alice's bitcoin address, or</li>
-			<li>our server being able to link Alice's bond purchase with Bob's bond redemption.</li>
-		</ul>
+		<label for="bond_file">Choose your .bond file:</label> <input type="file" name="bond_file" accept=".bond" required><br>
+		<label for="to_addr">Enter your destination bitcoin address:</label> <input type="text" name="to_addr" required><br>
+		<input type="submit" name="redeem" value="Redeem Bond">
 	</p>
-</main>
-</body>
-</html>
+</form>
+<h3 id="about">What is this?</h3>
+<p>
+	We provide a Tor hidden service for anonymizing bitcoin transactions while preventing even our own server from linking from and to addresses. We accomplish this through the use of "bitcoin bonds", generated through a process known as blind signing. This allows a users to purchase and redeem bonds, without us (the server) being able to link sold and redeemed bonds. Such a setup has allows Alice to send Bob a bond's worth of bitcoin, without:
+	<ul>
+		<li>Alice learning Bob's bitcoin address,</li>
+		<li>Bob learning Alice's bitcoin address, or</li>
+		<li>our server being able to link Alice's bond purchase with Bob's bond redemption.</li>
+	</ul>
+</p>
+{% endblock %}

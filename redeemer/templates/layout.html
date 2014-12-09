@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <title>Dryer 21: A Bitcoin Anonymizer</title>
+  <meta name="description" content="Bitcoins go in, bitcoins come out: we can't explain that." />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    html, body, h1, h2, h3 {margin: 0;}
+    body {
+      background-color: #76450D;
+			font-family: Arial, sans-serif;
+    }
+    header {
+      background-color: #FFFFFF;
+      margin: 20px 0;
+      padding: 20px 0;
+      text-align: center;
+    }
+    main {
+      background-color: #FFFFFF;
+      margin-left: calc(50% - 420px);
+      padding: 20px;
+      width: 800px;
+			line-spacing: 1.3em;
+    }
+    a {
+			text-decoration: none;
+			font-weight: bold;
+		}
+  </style>
+</head>
+<body>
+<header>
+	{% block header %}
+  <h1>Dryer 21: A Bitcoin Anonymizer, or:</h1>
+  <h2>"Bitcoins go in, bitcoins come out&mdash;never a miscommunication"</h2>
+  <h3>A 6.858 Project by asuhl, snp, dannybd</h3>
+	{% endblock %}
+</header>
+<main>
+	{% block main %}{% endblock %}
+</main>
+</body>
+</html>
