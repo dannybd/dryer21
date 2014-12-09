@@ -3,8 +3,11 @@ from flask import make_response, render_template, request, json, url_for
 jsonify = json.jsonify
 
 app = Flask(__name__)
+# Restrict uploading files larger than 10kB. FIXME: Set to size of token in the future.
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024
 
 @app.route('/')
+@app.route('/index')
 def index():
 	return render_template('seller.html')
 
@@ -44,6 +47,10 @@ def fetch_protobond():
 		protobond = 'protobond goes here'
 	finally:
 		return jsonify(protobond=protobond,mock=mock)
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+	return 'The token you tried to upload was too large!', 413
 
 if __name__ == '__main__':
 	app.run(port=9001)
