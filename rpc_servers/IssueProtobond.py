@@ -8,22 +8,23 @@ Requires:
 - Sign RPC
 """
 
-import db_rpcclient
-import check_rpcclient
-import sign_rpcclient
-import rpclib
+from rpc_servers import Database, Check, Sign
 
-@expose_rpc
+import rpc_lib
+
+rpc_lib.set_rpc_socket_path("rpc/IssueProtobond/sock")
+
+@rpc_lib.expose_rpc
 def issue_protobond(token):
 	"""
 	
 	"""
-	dbentry = db_rpcclient.get(token=token)
+	dbentry = Database.get(token=token)
 	if dbentry == None:
 		raise rpclib.RPCException("No such token in database.")
 	address, price = dbentry['address'], dbentry['price']
-	if not check_rpcclient.check(address=address, price=price):
+	if not Check.check(address=address, price=price):
 		raise rpclib.RPCException("Payment not received.")
-	protobond = sign_rpcclient.sign(token=token)
-	db_rpcclient.mark_protobond_sent(token=token) # Just a useful flag for database pruning
+	protobond = Sign.sign(token=token)
+	Database.mark_protobond_sent(token=token) # Just a useful flag for database pruning
 	return protobond

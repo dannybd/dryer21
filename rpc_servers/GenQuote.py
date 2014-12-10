@@ -12,11 +12,14 @@ Needs access to:
 import random
 
 import bitcoin
-import db_rpcclient
+from rpc_clients import Database
 import global_storage
-import rpclib
 
-@expose_rpc
+import rpc_lib
+
+rpc_lib.set_rpc_socket_path("rpc/GenQuote/sock")
+
+@rpc_lib.expose_rpc
 def gen_quote(token, mpk=None):
 	"""
 	Given a token, adds (token, index, price, timestamp) to the database, and returns (addr, price)
@@ -38,7 +41,7 @@ def gen_quote(token, mpk=None):
 		raise rpclib.RPCException("Token not sane.")
 
 	# FIXME: Should we be worried about race conditions here?
-	dbentry = db_rpcclient.get(token=token)
+	dbentry = Database.get(token=token)
 	if dbentry != None: # This token is already in the database.
 		index, address, price = dbentry['index'], dbentry['address'], dbentry['price']
 		assert address == bitcoin.electrum_address(mpk, index) # Index is the index used to generate address.(deterministic key generation)
@@ -48,7 +51,7 @@ def gen_quote(token, mpk=None):
 		address = bitcoin.electrum_address(mpk, index)
 		# Price is the price to buy a bond, in satoshi. (We don't use BTC because we don't want floating point errors.)
 		price = 10 ** 7 # 0.1 BTC -- for now, no markup. In the future this may change based on transaction costs, overhead, greediness, etc.
-		db_rpcclient.put(token=token, index=index, address=address, price=price)
+		Database.put(token=token, index=index, address=address, price=price)
 	return (address, price)
 
 def sanetoken(token):
