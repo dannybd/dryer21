@@ -4,6 +4,7 @@ Signs tokens, making them protobonds
 """
 
 from base64 import b64encode, b64decode
+import global_storage
 import rpc_lib
 
 rpc_lib.set_rpc_socket_path("rpc/Sign/sock")
