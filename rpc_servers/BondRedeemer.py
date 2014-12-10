@@ -1,5 +1,5 @@
 """
-BondAuth:
+BondRedeemer:
 
 Redeeming a bond involves verifying that the bond is valid (i.e., something we signed) and unused (to be sure people aren't double-spending.) We do the former with Verify.verify and the latter with RedeemerDB.try_to_redeem.
 
@@ -12,10 +12,10 @@ import rpc_lib
 import Verify
 from rpc_clients import RedeemerDB
 
-rpc_lib.set_rpc_socket_path("rpc/BondAuth/sock")
+rpc_lib.set_rpc_socket_path("rpc/BondRedeemer/sock")
 
 @rpc_lib.expose_rpc
-def bond_auth(bond, address):
+def bond_redeem(bond, address):
 	"""
 	Given a bond and an address, verifies the bond and then adds the bond and address to the RedeemerDB for later redemption.
 	Returns True on success, raises exception on error.
@@ -34,10 +34,10 @@ def bond_auth(bond, address):
 
 def bond_sane(bond):
 	# Make sure someone's not trying to make us verify a 15 MB cat GIF.
-	print "WARNING: BondAuth.bond_sane not yet implemented"
+	print "WARNING: BondRedeemer.bond_sane not yet implemented"
 	return True # Cat GIFs are okay for now...
 
 def valid_address(address):
 	# Make sure this is actually a bitcoin address
-	print "WARNING: BondAuth.valid_address not yet implemented"
+	print "WARNING: BondRedeemer.valid_address not yet implemented"
 	return True
