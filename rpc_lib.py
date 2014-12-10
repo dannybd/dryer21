@@ -93,7 +93,6 @@ def launch_rpc_server(import_name):
 	except OSError:
 		pass
 	# Now launch the server.
-	print "TRYING:", os.getcwd(), global_socket_path
 	server = RPCServer(global_socket_path, RPCRequestHandler)
 	server.serve_forever()
 
