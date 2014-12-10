@@ -8,6 +8,9 @@ from flask import Flask
 from flask import make_response, render_template, request, json, url_for
 jsonify = json.jsonify
 
+from rpc_clients.GenQuote import gen_quote
+from rpc_clients.IssueProtobond import issue_protobond
+
 app = Flask(__name__)
 # Restrict uploading files larger than 10kB.
 # Tokens are ~1kB, but this prevents cat GIF uploads.
@@ -27,7 +30,6 @@ def fetch_quote():
 	token = request.form.get('token', None)
 	addr, price, mock = None, None, False
 	try:
-		from rpc_clients.gen_quote import gen_quote
 		(addr, price) = gen_quote(token=token)
 	except Exception, e:
 		mock = True
@@ -41,7 +43,6 @@ def fetch_protobond():
 	token = request.form.get('token', None)
 	protobond, mock = None, False
 	try:
-		from rpc_clients.issue_protobond import issue_protobond
 		protobond = issue_protobond(token)
 	except Exception, e:
 		mock = True
