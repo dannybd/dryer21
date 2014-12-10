@@ -64,7 +64,7 @@ class DryerServer:
 	def fetchQuote(token):
 		"""
 		Sending up a token returns a quote to the user, containing the current cost
-		of a bond (fluctating with transaction feeds) and a Bitcoin address where
+		of a bond (fluctating with transaction fees) and a Bitcoin address where
 		the user should send their Bitcoin.
 		"""
 		data = DryerServer.load(
@@ -145,9 +145,9 @@ class CryptoHelper:
 		itself: its inverse, (r^-1) mod n, is stored for generating the bond from
 		the protobond later, and r^e is returned for using in token generation.
 		"""
-		nonce = CryptoNumber.getRandomRange(0, CryptoVars.n)
+		nonce = CryptoNumber.getRandomRange(0, CryptoVars.n) # FIXME According to pycrypto documentation, this function is for internal use only and may be renamed or removed in the future.
 		# The inverse of the nonce is stored for later use as protobond --> bond
-		CryptoVars.nonce_inv = CryptoNumber.inverse(nonce, CryptoVars.n)
+		CryptoVars.nonce_inv = CryptoNumber.inverse(nonce, CryptoVars.n) # TODO Verify this is time-invariant.
 		nonce_e = CryptoHelper.encrypt(nonce)
 		# Destroy the nonce as it is no longer needed.
 		del nonce
@@ -158,7 +158,7 @@ class CryptoHelper:
 		"""
 		Wrapper around the encryption method used by Crypto.PublicKey.RSA._RSAobj
 		"""
-		return CryptoVars.key.encrypt(s, 0)[0]
+		return CryptoVars.key.encrypt(s, 0)[0] # (the second argument is ignored, according to pycrypto docs)
 
 	@staticmethod
 	def bytesToLong(s):
