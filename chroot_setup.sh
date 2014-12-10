@@ -56,6 +56,7 @@ mkdir $JAIL/dryer21/rpc/
 # Create resource directories.
 mkdir $JAIL/dryer21/data/seller_database
 mkdir $JAIL/dryer21/data/redeemer_database
+mkdir $JAIL/dryer21/data/signing_private_key
 
 # Initialize the starting databases.
 python setup_databases.py $JAIL
@@ -68,6 +69,9 @@ cp -r seller/ $JAIL/dryer21/code/
 cp -r redeemer/ $JAIL/dryer21/code/
 cp -r rpc_servers/ $JAIL/dryer21/code/
 cp -r rpc_clients/ $JAIL/dryer21/code/
+
+# Copy over keys.
+cp keys/signing_private_key.txt $JAIL/dryer21/data/signing_private_key/
 
 # Make absolutely everything be owned by root to start with.
 chown -R 0:0 $JAIL

@@ -144,9 +144,9 @@ Process("Redeemer", "/dryer21/code/redeemer/redeemer.py")
 # Unfortunately, sqlite3 appears to modify the directory somehow, so it needs to be an owner.
 Resource("/dryer21/data/seller_database", owner="SellerDB")
 Resource("/dryer21/data/redeemer_database", owner="RedeemerDB")
-Resource("/dryer21/data/crypto_private_key")
+Resource("/dryer21/data/signing_private_key")
 
-grant("Sign", "/dryer21/data/crypto_private_key")
+grant("Sign", "/dryer21/data/signing_private_key")
 grant_rpc("Seller", "GenQuote")
 grant_rpc("Seller", "IssueProtobond")
 grant_rpc("GenQuote", "SellerDB")
