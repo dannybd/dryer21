@@ -1,5 +1,7 @@
+import Crypto.Cipher.PKCS1_OAEP as PKCS1_OAEP
+import Crypto.Hash.SHA512 as SHA512
 import Crypto.PublicKey.RSA as RSA
-from base64 import b64decode
+import base64
 
 def get_bitcoin_master_public_key():
 	print 'NOT YET IMPLEMENTED!!!'
@@ -16,7 +18,7 @@ def importKey(keystr):
 	"""
 	From a base64-encoded string defining an RSA key, create the key and its n.
 	"""
-	return RSA.importKey(b64decode(keystr))
+	return RSA.importKey(base64.b64decode(keystr))
 
 class CryptoVars:
 	"""
