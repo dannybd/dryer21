@@ -8,17 +8,17 @@ import os
 import sys
 from time import sleep, time
 from urllib import urlencode
-from urllib2 import urlopen
 
 class DryerServer:
 	"""
 	Handles connections to the server, and interpretations of the responses.
 	"""
-	BASE_URL = 'http://dannybd.mit.edu/6.858/'
-	INIT_URL = 'fetch_crypto_vars.php'
-	TOKEN_URL = 'fetch_quote.php'
-	PROTOBOND_URL = 'fetch_protobond.php'
-	LEGAL_URLS = [INIT_URL, TOKEN_URL, PROTOBOND_URL]
+	BASE_URL = 'http://dryer4xxsgccsbec.onion/'
+	MOCK_BASE_URL = 'http://dannybd.mit.edu/dryer21_seller/'
+	CONNECT_URL = 'connect'
+	QUOTE_URL = 'quote'
+	PROTOBOND_URL = 'protobond'
+	LEGAL_URLS = [CONNECT_URL, QUOTE_URL, PROTOBOND_URL]
 
 	errmsg = 'Unable to connect to server. Please connect and try again.'
 
@@ -32,7 +32,12 @@ class DryerServer:
 		if url not in DryerServer.LEGAL_URLS:
 			raise ValueError('Need to use a valid URL')
 		try:
-			response = urlopen(DryerServer.BASE_URL + url, urlencode(data))
+			if Interface.mock:
+				import urllib2
+				response = urllib2.urlopen(DryerServer.MOCK_BASE_URL + url, urlencode(data))
+			else:
+				import torsocket
+				response = torsocket.urlopen(DryerServer.BASE_URL + url, urlencode(data))
 		except Exception:
 			Interface.failWaiting(errmsg)
 		try:
@@ -41,16 +46,19 @@ class DryerServer:
 			Interface.failWaiting('JSON error in returned data.')
 
 	@staticmethod
-	def fetchCryptoVars():
+	def fetchConnect():
 		"""
-		Load the crypto variables stored on the server which are needed for running
-		the operation. Generate the relevant keys from the transported data. This
-		also serves as an initial connectivity test to the server.
+		Initial connectivity test to the server.
 		"""
-		data = DryerServer.load(DryerServer.INIT_URL)
-		(key, n) = CryptoHelper.importKey(data['key'])
-		OAEP_key = CryptoHelper.importKey(data['OAEP_key'])[0]
-		return (key, n, data['k'], OAEP_key)
+		data = DryerServer.load(
+			url=DryerServer.CONNECT_URL,
+			data={'mock': Interface.mock},
+		)
+		if Interface.mock:
+			CryptoVars.keystr = data['private_key']
+			CryptoVars.key = CryptoHelper.importKey(CryptoVars.keystr)
+			CryptoVars.n = CryptoVars.key.n
+		return bool(data['success'])
 
 	@staticmethod
 	def fetchQuote(token):
@@ -60,7 +68,7 @@ class DryerServer:
 		the user should send their Bitcoin.
 		"""
 		data = DryerServer.load(
-			DryerServer.TOKEN_URL,
+			url=DryerServer.QUOTE_URL,
 			data={'token': token},
 			errmsg='Unable to send token to server. Please connect and try again.',
 		)
@@ -78,7 +86,7 @@ class DryerServer:
 		protobond and return that instead.
 		"""
 		data = DryerServer.load(
-			DryerServer.PROTOBOND_URL,
+			url=DryerServer.PROTOBOND_URL,
 			data={'token': token},
 			errmsg='Unable to check server for protobond. Please connect and try again.',
 		)
@@ -86,50 +94,6 @@ class DryerServer:
 		if protobond and Interface.mock:
 			protobond = CryptoServer.genProtobond(token)
 		return protobond
-
-class CryptoVars:
-	"""
-	Stores the variables involved within the crypto processes.
-	"""
-	# key, n correspond to the 4096-bit RSA used in the token and bond
-	key = None
-	n = None
-	# k is a publicly-known value used to mix with the hash in token generation
-	k = None
-	# OAEP_cipher is also based on 4096-bit RSA, and contains both the public
-	# and private key. This is NOT used for encrypting the token or bond, but
-	# instead to encrypt and descrypt the message [OAEP(Hash, k, x) || x)].
-	# We're using PyCrypto for our encryption, and it only provides OAEP as part
-	# of PKCS1_OAEP, which requires an encryption scheme. By providing the private
-	# key of the OAEP_cipher publicly, we annul the encryption part of the cipher
-	# but maintain OAEP's all-or-nothing attribute.
-	OAEP_cipher = None
-	# Length of resulting OAEP-encrypted message
-	OAEP_cipher_len = 512
-	# The seed of the message, x, is given a recognizable prefix for further
-	# validation purposes
-	x_prefix = '[[BITCOIN BOND]]'
-	x_entropy_bytes = 256
-	x_len = x_entropy_bytes + len(x_prefix)
-	# The message, m, is also given a prefix, for providing a first-step
-	# validation with a high degree of confidence that this is an actual signed
-	# bond
-	msg_prefix = x_prefix
-	# Holds the inverse of the nonce, for generating the bond from the protobond.
-	# Needs to be destroyed after use, so we're storing it as a value here and not
-	# passing it as an argument between frames to minimize copies in memory.
-	nonce_inv = None
-
-	@staticmethod
-	def init(key, n, k, OAEP_key):
-		"""
-		Sets the crypto variables which have been pulled from the server. Also
-		generates the OAEP cipher directly from the key.
-		"""
-		CryptoVars.key = key
-		CryptoVars.n = n
-		CryptoVars.k = k
-		CryptoVars.OAEP_cipher = PKCS1_OAEP.new(OAEP_key, SHA512)
 
 class CryptoHelper:
 	"""
@@ -140,8 +104,7 @@ class CryptoHelper:
 		"""
 		From a base64-encoded string defining an RSA key, create the key and its n.
 		"""
-		key = RSA.importKey(b64decode(keystr))
-		return (key, key.n)
+		return RSA.importKey(b64decode(keystr))
 
 	@staticmethod
 	def hash(*args):
@@ -225,36 +188,70 @@ class CryptoHelper:
 		"""
 		return long(b64decode(s), 16)
 
+class CryptoVars:
+	"""
+	Stores the variables involved within the crypto processes.
+	"""
+	# key, n correspond to the 4096-bit RSA used in the token and bond
+	keystr = 'MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEApYV26Umk/uU0Gau29/XNKhxtA1P6fwhMctW+5Jqg32tYwVk2ZUMGHzgDexZdHmOoHYFYllP1TuWZEMpTwxMCJtV0gWhBGdUmAECVnVwmzfG2RvCfVSlmbNei2C6I2mlC05eg0tXyGW4AGXG8yfhW/P2mD23B7zZGzY8/thCWCYGnbNG9i0+Qk4muohLyoLhIGcHK38yDmsjQ3JFSSwrg2S6iXa/dfXbPonNZZvSZAUYBeRaZoJYtmD8hygQSy++HQ254las1UtTLlvdLZ9O6vIg6y0vCSjWn1NCqAYlm94mFxk9cIB9iIkmES37sLZMG8YD47xCxiLAcIxpwoVJJVrIc+wQoT4qNSdCixQG0Z7HA7+DcWA1txFSH8zaTmCI0AKL5zxSsitzprB8TJcaDAFq7DXUW1LuysnEEdm+Nf20MLZ/pwjJu4lMkP0K/ukdt0VHXSjNYZkhUEwUju3T0W10ZzdCjL3AdjnPBw/CMaCOaXxjsN/9qhH59p8+FmFUu749mp6j+5u25o93SEnPy8xDbf6wNjueU2a4z10u4o16frfIEwz84peGKeamGH9ALLV3nlC+bVd7AhE3MfXQ/B1YJUxPVhmYkKJvkRcBTpZMIGhzVG5PwTLxS1GDz0mhoBkic8RDVN6fVpkEutA9nZGgKFBL+u+rPa5JjSLwP3mcCAwEAAQ=='
+	key = CryptoHelper.importKey(keystr)
+	n = key.n
+	# OAEP_cipher is also based on 4096-bit RSA, and contains both the public
+	# and private key. This is NOT used for encrypting the token or bond, but
+	# instead to encrypt and descrypt the message [OAEP(Hash(n, x) || x)].
+	# We're using PyCrypto for our encryption, and it only provides OAEP as part
+	# of PKCS1_OAEP, which requires an encryption scheme. By providing the private
+	# key of the OAEP_cipher publicly, we annul the encryption part of the cipher
+	# but maintain OAEP's all-or-nothing attribute.
+	OAEP_keystr = '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'
+	OAEP_key = CryptoHelper.importKey(OAEP_keystr)
+	OAEP_cipher = PKCS1_OAEP.new(OAEP_key, SHA512)
+	# Length of resulting OAEP-encrypted message
+	OAEP_cipher_len = 512
+	# The seed of the message, x, is given a recognizable prefix for further
+	# validation purposes
+	x_prefix = '[[BITCOIN BOND]]'
+	x_entropy_bytes = 256
+	x_len = x_entropy_bytes + len(x_prefix)
+	# The message, m, is also given a prefix, for providing a first-step
+	# validation with a high degree of confidence that this is an actual signed
+	# bond
+	msg_prefix = x_prefix
+	# Holds the inverse of the nonce, for generating the bond from the protobond.
+	# Needs to be destroyed after use, so we're storing it as a value here and not
+	# passing it as an argument between frames to minimize copies in memory.
+	nonce_inv = None
+
 class CryptoClient:
 	"""
 	Provides methods which define actions performed client-side to purchase a
 	bitcoin bond.
 	"""
 	@staticmethod
-	def genCryptoVars():
+	def connect():
 		"""
-		Pulls required variables from the server and populates CryptoVars class
+		Connects to server
 		"""
-		CryptoVars.init(*DryerServer.fetchCryptoVars())
+		DryerServer.fetchConnect()
 
 	@staticmethod
 	def genToken():
 		"""
 		Generates a token, which is of the form (m*r^e) mod n.
-		Contains a message, m, which is of the form OAEP(PREFIX || Hash(k, x) || x),
+		Contains a message, m, which is of the form OAEP(PREFIX || Hash(n, x) || x),
 		as well as a nonce, r, which is encrypted. The nonce's inverse is generated
 		and stored for final bond generation later.
 		"""
 		# Generate x, which is random with a prefix for verification purposes
 		x = CryptoVars.x_prefix + os.urandom(CryptoVars.x_entropy_bytes)
-		# h = Hash(k, x) [k is supplied by the server]
-		h = CryptoHelper.hash(CryptoVars.k, x)
-		# m = OAEP(PREFIX || Hash(k, x) || x)
+		# h = Hash(n, x)
+		h = CryptoHelper.hash(CryptoHelper.longToBytes(CryptoVars.n), x)
+		# m = OAEP(PREFIX || Hash(n, x) || x)
 		m = CryptoHelper.OAEP(CryptoVars.msg_prefix + h + x)
 		# Convert to a long mod n
 		m = CryptoHelper.bytesToLong(m)
 		if m != (m % CryptoVars.n):
-			raise ValueError('m is too big!')
+			raise ValueError('OAEP_cipher._key.n > key.n causing invalid m')
 		# Generate (r^e) mod n, also (r^-1) mod n [stored as CryptoVars.nonce_inv]
 		nonce_e = CryptoHelper.genNonce() % CryptoVars.n
 		# Token = (m*r^e) mod n
@@ -297,7 +294,7 @@ class CryptoClient:
 		"""
 		Bond validation needs to happen server-side, but there's not reason why the
 		client can't also verify that they have received a valid bond.
-		BOND = m^d, m = OAEP(PREFIX || Hash(k, x) || x).
+ 		BOND = m^d, m = OAEP(PREFIX || Hash(n, x) || x).
 		"""
 		# Make sure the bond holds a number
 		try:
@@ -316,15 +313,15 @@ class CryptoClient:
 		# Check for PREFIX
 		if not msg.startswith(CryptoVars.msg_prefix):
 			return (False, None, 'Not a valid bond: msg_prefix failure')
-		# Extract h = Hash(k, x) and x
+		# Extract h = Hash(n, x) and x
 		msg = msg[len(CryptoVars.msg_prefix):]
 		h = msg[:-CryptoVars.x_len]
 		x = msg[-CryptoVars.x_len:]
 		# Check for x's prefix
 		if not x.startswith(CryptoVars.x_prefix):
 			return (False, x, 'Not a valid bond: x_prefix failure')
-		# Make sure that the hash is in fact Hash(k, x)
-		if h != CryptoHelper.hash(CryptoVars.k, x):
+		# Make sure that the hash is in fact Hash(n, x)
+		if h != CryptoHelper.hash(CryptoHelper.longToBytes(CryptoVars.n), x):
 			return (False, x, 'Not a valid bond: hash failure')
 		# Huzzah! It's valid!
 		return (True, x, 'Success! Valid bond!')
@@ -389,7 +386,7 @@ class Interface:
 		Interface.header()
 		# Connect to server and pull relevant variables
 		Interface.waitingFor('Connecting to Dryer 21 server')
-		CryptoClient.genCryptoVars()
+		CryptoClient.connect()
 		Interface.doneWaiting()
 		# Generate a token based on those variables
 		Interface.waitingFor('Generating token')
