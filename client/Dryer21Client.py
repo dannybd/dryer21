@@ -31,7 +31,7 @@ import Crypto.Util.number as CryptoNumber
 import Crypto.Cipher.PKCS1_OAEP as PKCS1_OAEP
 import Crypto.Hash.SHA512 as SHA512
 import Crypto.PublicKey.RSA as RSA
-import base64, json, os, sys, time, urllib
+import base64, json, random, os, sys, time, urllib
 
 save, mock, bypassTor = True, False, False
 BASE_URL = 'http://dryer4xxsgccsbec.onion/'
@@ -60,10 +60,9 @@ def gen_token():
 	m = CryptoNumber.bytes_to_long(m)
 	if m != (m % CryptoVars.n):
 		raise ValueError('OAEP_cipher._key.n > key.n causing invalid m')
-	# Generate the nonce, r
+	# Generate the nonce, r, such that 0 <= r < n
 	# The nonce is stored for later use for turning the protobond into a bond
-	# FIXME According to PyCrypto documentation, this function is for internal use only and may be renamed or removed in the future.
-	CryptoVars.nonce = CryptoNumber.getRandomRange(0, CryptoVars.n)
+	CryptoVars.nonce = random.SystemRandom().randint(0, CryptoVars.n - 1)
 	# Generate (r^e) mod n
 	nonce_e = encrypt(CryptoVars.nonce)
 	# Token = (m*r^e) mod n
