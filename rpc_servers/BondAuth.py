@@ -1,21 +1,20 @@
 """
 BondAuth:
-
 Requires:
 - Verify RPC (to verify the bonds)
-- BlacklistDB RPC (to add bonds to the blacklist)
+- RedeemerDB RPC (to add bonds to the blacklist / to-be-paid list)
 """
 
 import rpc_lib
 
-from rpc_clients import Verify, BlacklistDB
+from rpc_clients import Verify, RedeemerDB
 
 rpc_lib.set_rpc_socket_path("rpc/BondAuth/sock")
 
 @rpc_lib.expose_rpc
 def bond_auth(bond, address):
 	"""
-	Given a bond and an address, verifies the bond and then adds the bond and address to the BlacklistDB for later redemption.
+	Given a bond and an address, verifies the bond and then adds the bond and address to the RedeemerDB for later redemption.
 	Returns True on success, raises exception on error.
 	"""
 	if not valid_address(address):
@@ -25,7 +24,7 @@ def bond_auth(bond, address):
 	if not Verify.verify(bond=bond):
 		raise rpc_lib.RPCException("Invalid bond.")
 	
-	if BlacklistDB.try_to_redeem(bond=bond, address=address):
+	if RedeemerDB.try_to_redeem(bond=bond, address=address):
 		return True # Success!
 	else:
 		raise rpc_lib.RPCException("Bond already used.")
