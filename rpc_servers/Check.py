@@ -8,8 +8,11 @@ This implementation relies on blockchain.info for information about wallet balan
 Additionally this implementation doesn't check that a transaction has confirmed yet. Again, were we running the service for real we'd be sure the transactions had confirmed.
 """
 import bitcoin
+import rpc_lib
 
-@expose_rpc
+rpc_lib.set_rpc_socket_path("/tmp/checksock")
+
+@rpc_lib.expose_rpc
 def check(addr, price):
 	unspent_transactions = bitcoin.unspent(addr) # Returns a list of dicts with the keys 'output' and 'value'
 	total_balance = sum(transaction['value'] for transaction in unspent_transactions) # in satoshi
