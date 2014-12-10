@@ -15,10 +15,9 @@ def index():
 def fetch_connect():
 	return jsonify(success=True)
 
-# FIXME: Don't use GET
-@app.route('/quote', methods=['GET', 'POST'])
+@app.route('/quote', methods=['POST'])
 def fetch_quote():
-	token = request.args.get('token', None)
+	token = request.form.get('token', None)
 	mock = False
 	try:
 		# FIXME: Use RPC once available
@@ -30,10 +29,10 @@ def fetch_quote():
 	finally:
 		return jsonify(token=token,addr=addr,price=price,mock=mock)
 
-# FIXME: Don't use GET
-@app.route('/protobond', methods=['GET', 'POST'])
+@app.route('/protobond', methods=['POST'])
 def fetch_protobond():
-	token = request.args.get('token', None)
+	token = request.form.get('token', None)
+	protobond = None
 	mock = False
 	try:
 		# FIXME: Use RPC once available
@@ -44,7 +43,7 @@ def fetch_protobond():
 		from random import randint
 		if randint(1, 4) != 1:
 			return jsonify(error='No bitcoin yet...',mock=mock)
-		protobond = 'protobond goes here'
+		protobond = 'mock protobond goes here but validation is going to fail anyway because this is not aware of the nonce used'
 	finally:
 		return jsonify(protobond=protobond,mock=mock)
 
