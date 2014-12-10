@@ -135,7 +135,10 @@ declare_rpc_service("Check")
 declare_rpc_service("IssueProtobond")
 declare_rpc_service("GenQuote")
 Process("Seller", "/dryer21/code/seller/seller.py")
+
 declare_rpc_service("RedeemerDB")
+declare_rpc_service("BondRedeemer")
+Process("Redeemer", "/dryer21/code/redeemer/redeemer.py")
 
 # Having access to a resource gives r-x, but being owner gives rwx.
 # Unfortunately, sqlite3 appears to modify the directory somehow, so it needs to be an owner.
@@ -151,6 +154,9 @@ grant_rpc("IssueProtobond", "SellerDB")
 grant_rpc("IssueProtobond", "Check")
 grant_rpc("IssueProtobond", "Sign")
 grant_rpc("Check", "SellerDB")
+
+grant_rpc("Redeemer", "BondRedeemer")
+grant_rpc("BondRedeemer", "RedeemerDB")
 
 # If invoked directly, then we print out the tables.
 if __name__ == "__main__":

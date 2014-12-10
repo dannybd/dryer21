@@ -16,7 +16,7 @@ def sign(token):
 	Signs the token to create the protobond.
 	PROTOBOND = (m * r^e)^d = (m^d * r^e^d) = (m^d * r) mod n
 	"""
-	key = global_storage.get_crypto_private_key()
+	key = global_storage.get_signing_private_key()
 	protobond = key.decrypt(longDecode(token))
 	return longEncode(protobond)
 
