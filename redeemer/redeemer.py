@@ -36,6 +36,11 @@ def redeem_bond():
 def bond_error(err_msg=None):
 	return render_template('bond_error.html', err_msg=err_msg)
 
+@app.errorhandler(rpc_lib.RPCException)
+def rpc_lib_RPCException(error):
+	print 'We hit an RPCException!', error
+	raise error
+
 @app.errorhandler(413)
 def request_entity_too_large(error):
 	return bond_error('The file you tried to upload was too large!'), 413

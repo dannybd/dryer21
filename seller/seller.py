@@ -35,11 +35,13 @@ def fetch_quote():
 @app.route('/protobond', methods=['POST'])
 def fetch_protobond():
 	token = request.form.get('token', None)
-	try:
-		protobond = IssueProtobond.issue_protobond(token=token)
-	except rpc_lib.RPCException, e:
-		return jsonify(protobond=None)
+	protobond = IssueProtobond.issue_protobond(token=token)
 	return jsonify(protobond=protobond)
+
+@app.errorhandler(rpc_lib.RPCException)
+def rpc_lib_RPCException(error):
+	print 'We hit an RPCException!', error
+	raise error
 
 @app.errorhandler(413)
 def request_entity_too_large(error):
