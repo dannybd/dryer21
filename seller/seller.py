@@ -4,12 +4,12 @@ seller.py
 Contains the flask app which runs the seller frontend
 Makes RPC calls to other code which crunches stuff, and passes the results back to the client.
 """
+import sys
 from flask import Flask
 from flask import make_response, render_template, request, json, url_for
 jsonify = json.jsonify
 
-from rpc_clients.GenQuote import gen_quote
-from rpc_clients.IssueProtobond import issue_protobond
+from rpc_clients import GenQuote, IssueProtobond
 
 app = Flask(__name__)
 # Restrict uploading files larger than 10kB.
@@ -28,38 +28,20 @@ def fetch_connect():
 @app.route('/quote', methods=['POST'])
 def fetch_quote():
 	token = request.form.get('token', None)
-	addr, price, mock = None, None, False
-	try:
-		(addr, price) = gen_quote(token=token)
-	except Exception, e:
-		mock = True
-		print 'Using server-side mock mode'
-		(addr, price) = ('1DRYER21DRYER21DRYER21', '0.1BTC')
-	finally:
-		return jsonify(token=token,addr=addr,price=price,mock=mock)
+	(addr, price) = GenQuote.gen_quote(token=token)
+	return jsonify(token=token, addr=addr, price=price)
 
 @app.route('/protobond', methods=['POST'])
 def fetch_protobond():
 	token = request.form.get('token', None)
-	protobond, mock = None, False
-	try:
-		protobond = issue_protobond(token)
-	except Exception, e:
-		mock = True
-		print 'Using server-side mock mode'
-		from random import randint
-		if randint(1, 4) != 1:
-			return jsonify(error='No bitcoin yet...',mock=mock)
-		protobond = 'mock protobond goes here but validation is going to fail anyway because this is not aware of the nonce used'
-	finally:
-		return jsonify(protobond=protobond,mock=mock)
+	protobond = IssueProtobond.issue_protobond(token)
+	return jsonify(protobond=protobond)
 
 @app.errorhandler(413)
 def request_entity_too_large(error):
 	return 'The token you tried to upload was too large!', 413
 
 if __name__ == '__main__':
-	# FIXME: REMOVE DEBUG MODE IN PRODUCTION
-	import sys
 	app.debug = '--debug' in sys.argv[1:]
 	app.run(port=9001)
+
