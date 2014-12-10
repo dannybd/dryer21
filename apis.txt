@@ -1,6 +1,8 @@
 APIs for things we haven't written yet that we're assuming will exist:
 
-global_storage.get_master_public_key(): Returns the bitcoin master public key.
+global_storage.get_bitcoin_master_public_key(): Returns the bitcoin master public key.
+global_storage.get_signing_private_key(): Returns the private key for signing protobonds.
+
 db_rpcclient.get(token): Returns a database entry for token, or None if no such token is in the database.
 db_rpcclient.put(token=..., index=..., address=..., price=...): Puts an entry into the database. Fields are passed in as keyword arguments. db is responsible for setting the timestamp. Throws an error on failure.
 db_rpcclient.mark_protobond_sent(token=...): Increments a counter / sets a flag saying that we've sent this protobond. Useful for db pruning.
@@ -8,3 +10,8 @@ db_rpcclient.mark_protobond_sent(token=...): Increments a counter / sets a flag 
 Database entry is a dictionary with the following entries:
 	token, index, address, price (in satoshi), timestamp
 
+
+BlacklistDB:
+Columns: bond_m (the m in our bond), address (the address to send $$$ to), fulfilled (whether or not we've fulfilled the order)
+try_to_redeem(bond_m, address): Insert (bond_m, address, 0) into the database and return True. If bond already appears in the database, do nothing but return False.
+fulfill(bond_m): Sets the fulfilled flag to 1.

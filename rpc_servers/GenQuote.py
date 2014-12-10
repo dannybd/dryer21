@@ -26,13 +26,12 @@ def gen_quote(token):
 	If token already exists in the database, return the already-existing (addr, price).
 
 	token is the token, which will identify this transaction in the database.
-	mpk is the master public key, from which all the public addresses are derived. It should be gotten from global_storage.get_master_public_key().
 	
 	index is used with the master public key (mpk) to generate the address.
 
 	price is in satoshi.
 	"""
-	mpk = global_storage.get_master_public_key()
+	mpk = global_storage.get_bitcoin_master_public_key()
 
 	if not sanetoken(token):
 		raise rpclib.RPCException("Token not sane.")
