@@ -20,11 +20,27 @@ class Dryer21Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
 class Dryer21Handler(BaseHTTPServer.BaseHTTPRequestHandler):
 	def do_GET(s):
-		#
+		# Figure out what to do.
+		action = s.path[1:]
+		if action.startswith("put,"):
+			fields = action[4:].split(",")
+			Database.put(token=fields[0], index=int(fields[1]), address=fields[2], price=int(fields[3]))		
+			s.send_response(200)
+			s.send_header("Content-type", "text/plain")
+			s.end_headers()
+			s.wfile.write("Inserted.")
+			return
+		if action.startswith("get,"):
+			row = Database.get(token=action[4:])
+			s.send_response(200)
+			s.send_header("Content-type", "text/plain")
+			s.end_headers()
+			s.wfile.write("Got row: %r" % row)
+			return
 		s.send_response(200)
 		s.send_header("Content-type", "text/plain")
 		s.end_headers()
-		s.wfile.write("I got the data: %s" % s.path)
+		s.wfile.write("Bad request.")
 
 if __name__ == "__main__":
 	print "Launching front end server."
