@@ -4,6 +4,8 @@ redeemer.py
 Contains the flask app which runs the redeemer frontend
 Makes RPC calls to other code which crunches stuff, and passes the results back to the client.
 """
+
+import traceback
 from flask import Flask
 from flask import make_response, redirect, render_template, request, json, url_for
 jsonify = json.jsonify
@@ -39,6 +41,7 @@ def bond_error(err_msg=None):
 @app.errorhandler(rpc_lib.RPCException)
 def rpc_lib_RPCException(error):
 	print 'We hit an RPCException!', error
+	print traceback.format_exc()
 	raise error
 
 @app.errorhandler(413)
