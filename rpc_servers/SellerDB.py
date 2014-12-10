@@ -10,6 +10,7 @@ rpc_lib.set_rpc_socket_path("rpc/SellerDB/sock")
 def get(token):
 	conn = sqlite3.connect("data/seller_database/seller_database.db")
 	conn.row_factory = sqlite3.Row
+	token = token.encode("hex")
 	try:
 		rows = list(conn.execute("select address_index, address, price, timestamp, protobond_sent from transactions where token=?", (token,)))
 		assert len(rows) <= 1
