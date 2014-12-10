@@ -1,13 +1,16 @@
 """
 BondAuth:
+
+Redeeming a bond involves verifying that the bond is valid (i.e., something we signed) and unused (to be sure people aren't double-spending.) We do the former with Verify.verify and the latter with RedeemerDB.try_to_redeem.
+
 Requires:
-- Verify RPC (to verify the bonds)
 - RedeemerDB RPC (to add bonds to the blacklist / to-be-paid list)
 """
 
 import rpc_lib
 
-from rpc_clients import Verify, RedeemerDB
+import Verify
+from rpc_clients import RedeemerDB
 
 rpc_lib.set_rpc_socket_path("rpc/BondAuth/sock")
 
