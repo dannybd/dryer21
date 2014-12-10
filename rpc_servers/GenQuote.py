@@ -20,22 +20,19 @@ import rpc_lib
 rpc_lib.set_rpc_socket_path("rpc/GenQuote/sock")
 
 @rpc_lib.expose_rpc
-def gen_quote(token, mpk=None):
+def gen_quote(token):
 	"""
 	Given a token, adds (token, index, price, timestamp) to the database, and returns (addr, price)
 	If token already exists in the database, return the already-existing (addr, price).
 
 	token is the token, which will identify this transaction in the database.
-	mpk is the master public key, from which all the public addresses are derived. It should be gotten from global_storage.get_master_public_key(). If mpk is omitted, gen_quote will call global_storage.get_master_public_key() itself. There is the option to pass mpk in so that it is possible for a long-running process (like gen_quote_server) to avoid calling global_storage.get_master_public_key() every time (as it reads from a file that basically never changes).
+	mpk is the master public key, from which all the public addresses are derived. It should be gotten from global_storage.get_master_public_key().
 	
 	index is used with the master public key (mpk) to generate the address.
 
 	price is in satoshi.
 	"""
-	if mpk == None:
-		mpk = global_storage.get_master_public_key() # Get master public key if it isn't passed in
-
-	assert mpk != None
+	mpk = global_storage.get_master_public_key()
 
 	if not sanetoken(token):
 		raise rpclib.RPCException("Token not sane.")
