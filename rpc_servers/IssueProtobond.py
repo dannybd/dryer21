@@ -8,7 +8,7 @@ Requires:
 - Sign RPC
 """
 
-from rpc_servers import Database, Check, Sign
+from rpc_clients import Database, Check, Sign
 
 import rpc_lib
 
