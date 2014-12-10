@@ -41,7 +41,6 @@ def fetch_protobond():
 
 @app.errorhandler(rpc_lib.RPCException)
 def rpc_lib_RPCException(error):
-	print 'We hit an RPCException!', error
 	print traceback.format_exc()
 	raise error
 
