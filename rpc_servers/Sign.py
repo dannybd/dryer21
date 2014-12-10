@@ -4,7 +4,7 @@ Signs tokens, making them protobonds
 It is vital to the security of our system that Sign.sign be deterministic.
 """
 
-from base64 import b64encode, b64decode
+import base64
 import global_storage
 import rpc_lib
 
@@ -24,10 +24,10 @@ def longEncode(n):
 	"""
 	Encodes a long in a base64 string which is easily sendable / storable
 	"""
-	return b64encode(hex(n))
+	return base64.b64encode(hex(n))
 
 def longDecode(s):
 	"""
 	Decodes a base64 string (formed by longEncode) into a long
 	"""
-	return long(b64decode(s), 16)
+	return long(base64.b64decode(s), 16)

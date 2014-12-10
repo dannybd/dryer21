@@ -3,7 +3,7 @@ Verify.py:
 Validates bonds to determine if they're kosher
 """
 
-from base64 import b64encode, b64decode
+import base64
 import Crypto.Util.number as CryptoNumber
 import Crypto.Hash.SHA512 as SHA512
 from global_storage import CryptoVars
@@ -57,7 +57,7 @@ def longDecode(s):
 	"""
 	Decodes a base64 string (formed by longEncode) into a long
 	"""
-	return long(b64decode(s), 16)
+	return long(base64.b64decode(s), 16)
 
 def encrypt(s):
 	"""
