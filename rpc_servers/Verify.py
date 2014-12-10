@@ -7,11 +7,8 @@ import base64
 import Crypto.Util.number as CryptoNumber
 import Crypto.Hash.SHA512 as SHA512
 from global_storage import CryptoVars
-import rpc_lib
 
-rpc_lib.set_rpc_socket_path("rpc/Verify/sock")
 
-@rpc_lib.expose_rpc
 def verify(bond_str):
 	"""
 	Verify that we have received a valid bond.
