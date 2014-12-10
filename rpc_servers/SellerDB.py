@@ -1,10 +1,10 @@
 """
-rpc_servers.Database
+rpc_servers.SellerDB
 """
 
 import rpc_lib, sqlite3, time
 
-rpc_lib.set_rpc_socket_path("rpc/Database/sock")
+rpc_lib.set_rpc_socket_path("rpc/SellerDB/sock")
 
 @rpc_lib.expose_rpc
 def get(token):

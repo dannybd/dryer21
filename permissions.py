@@ -129,27 +129,28 @@ def launch_sequence():
 
 # Declare all the processes, which will be launched in the declared order.
 # NOTE: These MUST be declared in RPC dependency order!
-declare_rpc_service("Database")
+declare_rpc_service("SellerDB")
 declare_rpc_service("Sign")
 declare_rpc_service("Check")
 declare_rpc_service("IssueProtobond")
 declare_rpc_service("GenQuote")
 Process("Seller", "/dryer21/code/seller/seller.py")
+declare_rpc_service("RedeemerDB")
 
 # Having access to a resource gives r-x, but being owner gives rwx.
 # Unfortunately, sqlite3 appears to modify the directory somehow, so it needs to be an owner.
-Resource("/dryer21/data/seller_database", owner="Database")
+Resource("/dryer21/data/seller_database", owner="SellerDB")
+Resource("/dryer21/data/redeemer_database", owner="RedeemerDB")
 Resource("/dryer21/data/crypto_private_key")
 
 grant("Sign", "/dryer21/data/crypto_private_key")
-
 grant_rpc("Seller", "GenQuote")
 grant_rpc("Seller", "IssueProtobond")
-grant_rpc("GenQuote", "Database")
-grant_rpc("IssueProtobond", "Database")
+grant_rpc("GenQuote", "SellerDB")
+grant_rpc("IssueProtobond", "SellerDB")
 grant_rpc("IssueProtobond", "Check")
 grant_rpc("IssueProtobond", "Sign")
-grant_rpc("Check", "Database")
+grant_rpc("Check", "SellerDB")
 
 # If invoked directly, then we print out the tables.
 if __name__ == "__main__":

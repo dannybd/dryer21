@@ -14,14 +14,17 @@ if len(sys.argv) != 2:
 
 jail_dir = sys.argv[1]
 
-db_path = jail_dir + "/dryer21/data/seller_database/seller_database.db"
+seller_db_path = jail_dir + "/dryer21/data/seller_database/seller_database.db"
+redeemer_db_path = jail_dir + "/dryer21/data/redeemer_database/redeemer_database.db"
 
 try:
-	os.unlink(db_path)
+	os.unlink(seller_db_path)
+	os.unlik(redeemer_db_path)
 except OSError:
 	pass
 
-con = sqlite3.connect(db_path)
+# Create the seller database.
+con = sqlite3.connect(seller_db_path)
 con.execute("""
 create table transactions (
 	token text primary key,
@@ -32,4 +35,15 @@ create table transactions (
 	protobond_sent integer
 );
 """)
+
+# Create the redeemer database.
+con = sqlite3.connect(redeemer_db_path)
+con.execute("""
+create table transactions (
+	bond_m text primary key,
+	address text,
+	fulfilled integer
+);
+""")
+
 
