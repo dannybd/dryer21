@@ -13,7 +13,7 @@ import rpc_lib
 rpc_lib.set_rpc_socket_path("rpc/Check/sock")
 
 @rpc_lib.expose_rpc
-def check(addr, price):
-	unspent_transactions = bitcoin.unspent(addr) # Returns a list of dicts with the keys 'output' and 'value'
+def check(address, price):
+	unspent_transactions = bitcoin.unspent(address) # Returns a list of dicts with the keys 'output' and 'value'
 	total_balance = sum(transaction['value'] for transaction in unspent_transactions) # in satoshi
 	return total_balance >= price

@@ -9,6 +9,7 @@ from flask import Flask
 from flask import make_response, render_template, request, json, url_for
 jsonify = json.jsonify
 
+import rpc_lib
 from rpc_clients import GenQuote, IssueProtobond
 
 app = Flask(__name__)
@@ -34,7 +35,10 @@ def fetch_quote():
 @app.route('/protobond', methods=['POST'])
 def fetch_protobond():
 	token = request.form.get('token', None)
-	protobond = IssueProtobond.issue_protobond(token)
+	try:
+		protobond = IssueProtobond.issue_protobond(token=token)
+	except rpc_lib.RPCException, e:
+		return jsonify(protobond=None)
 	return jsonify(protobond=protobond)
 
 @app.errorhandler(413)

@@ -80,7 +80,7 @@ class DryerServer:
 	Handles connections to the server, and interpretations of the responses.
 	"""
 	BASE_URL = 'http://dryer4xxsgccsbec.onion/'
-	MOCK_BASE_URL = 'http://dannybd.mit.edu/dryer21_seller/'
+	MOCK_BASE_URL = 'http://127.0.0.1:9001/' #'http://dannybd.mit.edu/dryer21_seller/'
 	CONNECT_URL = 'connect'
 	QUOTE_URL = 'quote'
 	PROTOBOND_URL = 'protobond'
@@ -95,13 +95,16 @@ class DryerServer:
 		that URL. Throws errors on connection failures, bad URLs, or JSON errors in
 		the response.
 		"""
+		print "Calling load on: %r %r %r" % (url, data, errmsg)
 		if url not in DryerServer.LEGAL_URLS:
 			raise ValueError('Need to use a valid URL')
 		try:
-			if Interface.mock:
+			if Interface.mock or True:
 				import urllib2
+				print DryerServer.MOCK_BASE_URL + url
 				response = urllib2.urlopen(DryerServer.MOCK_BASE_URL + url, urlencode(data))
 			else:
+				print "Going here."
 				response = TorSocket.urlopen(DryerServer.BASE_URL + url, urlencode(data))
 		except Exception:
 			Interface.failWaiting(errmsg)
@@ -504,7 +507,7 @@ class Interface:
 		Interface.doneWaiting()
 
 		print
-		print 'Now, please send ' + price + ' to this address: ' + addr
+		print 'Now, please send ' + str(price) + ' satoshi to this address: ' + addr
 		print
 		Interface.horizontalLine()
 		print

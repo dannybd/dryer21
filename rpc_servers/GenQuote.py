@@ -34,7 +34,7 @@ def gen_quote(token):
 	mpk = global_storage.get_bitcoin_master_public_key()
 
 	if not sanetoken(token):
-		raise rpclib.RPCException("Token not sane.")
+		raise rpc_lib.RPCException("Token not sane.")
 
 	# FIXME: Should we be worried about race conditions here?
 	dbentry = SellerDB.get(token=token)

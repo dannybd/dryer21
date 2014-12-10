@@ -15,7 +15,9 @@ def get(token):
 		assert len(rows) <= 1
 		if len(rows) == 0:
 			return None
-		return dict(rows[0])
+		row = dict(rows[0])
+		row["address_index"] = int(row["address_index"])
+		return row
 	finally:
 		conn.close()
 
@@ -23,7 +25,7 @@ def get(token):
 def put(token, index, address, price):
 	conn = sqlite3.connect("data/seller_database/seller_database.db")
 	try:
-		row = (token, index, address, price, time.time(), 0)
+		row = (token, str(index), address, price, time.time(), 0)
 		try:
 			conn.execute("insert into transactions(token, address_index, address, price, timestamp, protobond_sent) values(?, ?, ?, ?, ?, ?)", row)
 		except sqlite3.IntegrityError:

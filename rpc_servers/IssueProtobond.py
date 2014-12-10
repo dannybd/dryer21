@@ -21,10 +21,10 @@ def issue_protobond(token):
 	"""
 	dbentry = SellerDB.get(token=token)
 	if dbentry == None:
-		raise rpclib.RPCException("No such token in database.")
+		raise rpc_lib.RPCException("No such token in database.")
 	address, price = dbentry['address'], dbentry['price']
 	if not Check.check(address=address, price=price):
-		raise rpclib.RPCException("Payment not received.")
+		raise rpc_lib.RPCException("Payment not received.")
 	protobond = Sign.sign(token=token)
 	SellerDB.mark_protobond_sent(token=token) # Just a useful flag for database pruning
 	return protobond

@@ -75,7 +75,8 @@ class RPCClient:
 
 	def make_stub(self, method):
 		# Return a stub that calls into the closed-over RPC client.
-		def rpc_stub(**kwargs):
+		def rpc_stub(*args, **kwargs):
+			assert len(args) == 0, "All RPC args must be keywords!"
 			return self.call(method, kwargs)
 		return rpc_stub
 
