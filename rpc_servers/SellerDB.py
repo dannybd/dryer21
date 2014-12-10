@@ -18,7 +18,6 @@ def get(token):
 			return None
 		row = dict(rows[0])
 		row["address_index"] = int(row["address_index"])
-		row["token"] = row["token"].decode("hex")
 		row["address"] = row["address"].decode("hex")
 		return row
 	finally:
