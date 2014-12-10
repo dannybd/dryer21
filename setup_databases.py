@@ -17,8 +17,11 @@ jail_dir = sys.argv[1]
 con = sqlite3.connect(jail_dir + "/dryer21/data/seller_database/seller_database.db")
 con.execute("""
 create table transactions (
-	nonce text primary key,
-	address text
-)
+	session_token blob primary key,
+	address_index integer,
+	address text,
+	price integer,
+	timestamp integer
+);
 """)
 
