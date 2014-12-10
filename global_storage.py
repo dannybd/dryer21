@@ -3,6 +3,8 @@ import Crypto.Hash.SHA512 as SHA512
 import Crypto.PublicKey.RSA as RSA
 import base64, functools
 
+bond_value = 1000
+
 def memoized(f):
 	memo = {}
 	@functools.wraps(f)

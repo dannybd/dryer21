@@ -69,7 +69,7 @@ python setup_databases.py $JAIL
 fi
 
 # Copy over required code.
-cp permissions.py rpc_lib.py global_storage.py verify.py $JAIL/dryer21/code/
+cp permissions.py rpc_lib.py global_storage.py verify.py dispenser.py $JAIL/dryer21/code/
 cp -r seller/ $JAIL/dryer21/code/
 cp -r redeemer/ $JAIL/dryer21/code/
 cp -r rpc_servers/ $JAIL/dryer21/code/
@@ -77,14 +77,15 @@ cp -r rpc_clients/ $JAIL/dryer21/code/
 
 # Copy over keys.
 cp keys/signing_private_key.txt $JAIL/dryer21/data/signing_private_key/
-cp keys/collector_master_public_key.txt $JAIL/dryer21/data/collector_master_public_key
-cp keys/collector_master_private_key.txt $JAIL/dryer21/data/collector_master_private_key
-cp keys/dispenser_public_key.txt $JAIL/dryer21/data/dispenser_public_key
-cp keys/dispenser_private_key.txt $JAIL/dryer21/data/dispenser_private_key
-cp keys/mixin_address $JAIL/dryer21/data/mixin_address
+cp keys/collector_master_public_key.txt $JAIL/dryer21/data/collector_master_public_key/
+cp keys/collector_master_private_key.txt $JAIL/dryer21/data/collector_master_private_key/
+cp keys/dispenser_address.txt $JAIL/dryer21/data/dispenser_address/
+cp keys/dispenser_private_key.txt $JAIL/dryer21/data/dispenser_private_key/
+cp keys/mixin_address.txt $JAIL/dryer21/data/mixin_address/
 
 # Make absolutely everything be owned by root to start with.
 chown -R 0:0 $JAIL
 # Make sure nothing is writable by anyone else.
 chmod -R a-w $JAIL
+
 

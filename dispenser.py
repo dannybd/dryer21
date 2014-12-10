@@ -9,13 +9,14 @@ Requires:
 """
 
 import bitcoin
-from rpc_lib import RedeemerDB
+from rpc_clients import RedeemerDB
 import global_storage
 
 def dispense():
-	for row in RedeemerDB.get_unfulfulled_rows():
+	for row in RedeemerDB.get_unfulfilled_rows():
 		# A row is a dict with keys 'bond', 'address', and 'fulfilled'.
 		assert row['fulfilled'] == 0 
+		print "Unfulfilled row:", row
 		RedeemerDB.fulfill(row['bond'])
 		send(global_storage.get_dispenser_private_key(), row['address'], global_storage.bond_value)
 
