@@ -23,9 +23,9 @@ def get_collector_master_private_key():
 	return private_keystr
 
 @memoized
-def get_dispenser_public_key():
-	public_keystr = open("data/dispenser_public_key/dispenser_public_key.txt").read().strip()
-	return public_keystr
+def get_dispenser_address():
+	address = open("data/dispenser_address/dispenser_address.txt").read().strip()
+	return address
 
 @memoized
 def get_dispenser_private_key():
@@ -41,6 +41,11 @@ def get_dispenser_private_key():
 def get_signing_private_key():
 	private_keystr = open("data/signing_private_key/signing_private_key.txt").read()
 	return importKey(private_keystr)
+
+@memoized
+def get_mixin_address():
+	address = open("data/mixin_address/mixin_address.txt").read().strip()
+	return address
 
 def importKey(keystr):
 	"""
