@@ -3,6 +3,7 @@ Sign.py:
 Signs tokens, making them protobonds
 """
 
+from base64 import b64encode, b64decode
 import rpc_lib
 
 rpc_lib.set_rpc_socket_path("rpc/Sign/sock")
@@ -15,7 +16,7 @@ def sign(token_str):
 	"""
 	key = global_storage.get_crypto_private_key()
 	protobond = key.decrypt(longDecode(token_str))
-	return CryptoHelper.longEncode(protobond)
+	return longEncode(protobond)
 
 def longEncode(n):
 	"""
