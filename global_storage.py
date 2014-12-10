@@ -1,16 +1,45 @@
 import Crypto.Cipher.PKCS1_OAEP as PKCS1_OAEP
 import Crypto.Hash.SHA512 as SHA512
 import Crypto.PublicKey.RSA as RSA
-import base64
+import base64, functools
 
-def get_bitcoin_master_public_key():
-	return '55825c190070a7460acbe0749befcdbcfb8c6e26b4a1588e4dcce380d89da1a2fd068d377b74c85d55248b0924a090dc8cbaf645ad74048faa933d8741defe9c'
+def memoized(f):
+	memo = {}
+	@functools.wraps(f)
+	def wrapper(*args):
+		if args not in memo:
+			memo[args] = f(*args)
+		return memo[args]
+	return wrapper
 
-private_keystr = None
+@memoized
+def get_collector_master_public_key():
+	public_keystr = open("data/collector_master_public_key/collector_master_public_key.txt").read().strip()
+	return public_keystr
+
+@memoized
+def get_collector_master_private_key():
+	private_keystr = open("data/collector_master_private_key/collector_master_private_key.txt").read().strip()
+	return private_keystr
+
+@memoized
+def get_dispenser_public_key():
+	public_keystr = open("data/dispenser_public_key/dispenser_public_key.txt").read().strip()
+	return public_keystr
+
+@memoized
+def get_dispenser_private_key():
+	private_keystr = open("data/dispenser_private_key/dispenser_private_key.txt").read().strip()
+	return private_keystr
+
+#@memoized
+#def get_signing_public_key():
+#	public_keystr = open("data/signing_public_key/signing_public_key.txt").read()
+#	return importKey(public_keystr)
+
+@memoized
 def get_signing_private_key():
-	global private_keystr
-	if private_keystr == None:
-		private_keystr = open("data/signing_private_key/signing_private_key.txt").read()
+	private_keystr = open("data/signing_private_key/signing_private_key.txt").read()
 	return importKey(private_keystr)
 
 def importKey(keystr):

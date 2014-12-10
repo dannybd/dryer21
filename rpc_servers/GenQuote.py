@@ -31,7 +31,7 @@ def gen_quote(token):
 
 	price is in satoshi.
 	"""
-	mpk = global_storage.get_bitcoin_master_public_key()
+	mpk = global_storage.get_collector_master_public_key()
 
 	if not sanetoken(token):
 		raise rpc_lib.RPCException("Token not sane.")
