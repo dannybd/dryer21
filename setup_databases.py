@@ -42,7 +42,7 @@ con.close()
 con = sqlite3.connect(redeemer_db_path)
 con.execute("""
 create table transactions (
-	bond_m text primary key,
+	bond text primary key,
 	address text,
 	fulfilled integer
 );

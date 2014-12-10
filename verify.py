@@ -9,14 +9,14 @@ import Crypto.Hash.SHA512 as SHA512
 from global_storage import CryptoVars
 
 
-def verify(bond_str):
+def verify(bond):
 	"""
 	Verify that we have received a valid bond.
 	BOND = m^d, m = OAEP(PREFIX || Hash(n, x) || x).
 	"""
 	# Make sure the bond holds a number
 	try:
-		bond = longDecode(bond_str)
+		bond = longDecode(bond)
 	except Exception:
 		print 'Not a valid bond: value encoding'
 		return False

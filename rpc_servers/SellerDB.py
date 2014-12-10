@@ -26,11 +26,8 @@ def put(token, index, address, price):
 	conn = sqlite3.connect("data/seller_database/seller_database.db")
 	try:
 		row = (token, str(index), address, price, time.time(), 0)
-		try:
-			conn.execute("insert into transactions(token, address_index, address, price, timestamp, protobond_sent) values(?, ?, ?, ?, ?, ?)", row)
-		except sqlite3.IntegrityError:
-			# Couldn't insert the row, probably that token already exists.
-			return False
+		# This next line might throw sqlite3.IntegrityError, but that's okay.
+		conn.execute("insert into transactions(token, address_index, address, price, timestamp, protobond_sent) values(?, ?, ?, ?, ?, ?)", row)
 		conn.commit()
 		return True
 	finally:

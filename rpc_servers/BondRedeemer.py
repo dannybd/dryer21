@@ -1,7 +1,7 @@
 """
 BondRedeemer:
 
-Redeeming a bond involves verifying that the bond is valid (i.e., something we signed) and unused (to be sure people aren't double-spending.) We do the former with Verify.verify and the latter with RedeemerDB.try_to_redeem.
+Redeeming a bond involves verifying that the bond is valid (i.e., something we signed) and unused (to be sure people aren't double-spending.) We do the former with verify.verify and the latter with RedeemerDB.try_to_redeem.
 
 Requires:
 - RedeemerDB RPC (to add bonds to the blacklist / to-be-paid list)
@@ -9,7 +9,7 @@ Requires:
 
 import rpc_lib
 
-import Verify
+import verify
 from rpc_clients import RedeemerDB
 
 rpc_lib.set_rpc_socket_path("rpc/BondRedeemer/sock")
@@ -24,7 +24,7 @@ def bond_redeem(bond, address):
 		raise rpc_lib.RPCException("Invalid address.")
 	if not bond_sane(bond):
 		raise rpc_lib.RPCException("Bond not sane.")
-	if not Verify.verify(bond=bond):
+	if not verify.verify(bond=bond):
 		raise rpc_lib.RPCException("Invalid bond.")
 	
 	if RedeemerDB.try_to_redeem(bond=bond, address=address):

@@ -63,8 +63,9 @@ python setup_databases.py $JAIL
 fi
 
 # Copy over required code.
-cp permissions.py rpc_lib.py global_storage.py $JAIL/dryer21/code/
+cp permissions.py rpc_lib.py global_storage.py verify.py $JAIL/dryer21/code/
 cp -r seller/ $JAIL/dryer21/code/
+cp -r redeemer/ $JAIL/dryer21/code/
 cp -r rpc_servers/ $JAIL/dryer21/code/
 cp -r rpc_clients/ $JAIL/dryer21/code/
 
