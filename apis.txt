@@ -11,7 +11,8 @@ Database entry is a dictionary with the following entries:
 	token, index, address, price (in satoshi), timestamp
 
 
+
 BlacklistDB:
 Columns: bond_m (the m in our bond), address (the address to send $$$ to), fulfilled (whether or not we've fulfilled the order)
 try_to_redeem(bond_m, address): Insert (bond_m, address, 0) into the database and return True. If bond already appears in the database, do nothing but return False.
-fulfill(bond_m): Sets the fulfilled flag to 1.
+mark_fulfilled(bond): Sets the fulfilled flag to 1.
