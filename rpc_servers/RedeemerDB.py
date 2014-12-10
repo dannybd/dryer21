@@ -30,3 +30,13 @@ def mark_fulfilled(bond):
 		conn.close()
 	return True
 
+@rpc_lib.expose_rpc
+def get_unfulfilled_rows():
+	conn = sqlite3.connect("data/redeemer_database/redeemer_database.db")
+	conn.row_factory = sqlite3.Row
+	try:
+		cursor = conn.execute("select * from transactions where fulfilled = 0")
+		return map(dict, cursor)
+	finally:
+		conn.close()
+
