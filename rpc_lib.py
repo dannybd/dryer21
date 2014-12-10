@@ -19,6 +19,8 @@ def expose_rpc(function):
 class RPCException(Exception):
 	pass
 
+# Although RPC servers are multithreaded to handle multiple clients, this lock is used to make sure
+# that only one handler is actually calling a registered RPC callback at any time.
 global_rpc_server_lock = threading.Lock()
 
 class RPCServer(SocketServer.ThreadingUnixStreamServer):
