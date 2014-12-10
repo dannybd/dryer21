@@ -5,6 +5,7 @@ Contains the flask app which runs the seller frontend
 Makes RPC calls to other code which crunches stuff, and passes the results back to the client.
 """
 import sys
+import traceback
 from flask import Flask
 from flask import make_response, render_template, request, json, url_for
 jsonify = json.jsonify
@@ -41,6 +42,7 @@ def fetch_protobond():
 @app.errorhandler(rpc_lib.RPCException)
 def rpc_lib_RPCException(error):
 	print 'We hit an RPCException!', error
+	print traceback.format_exc()
 	raise error
 
 @app.errorhandler(413)
