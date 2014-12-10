@@ -3,25 +3,33 @@
 setup_databases.py
 """
 
-import sys
-import sqlite3
+import sys, os, sqlite3
 
 if len(sys.argv) != 2:
 	print "Usage: %s <jail root>"
 	print
 	print "Sets up the databases in the jail directory."
+	print "WARNING: Overwrites whatever database you currently have!"
 	exit(1)
 
 jail_dir = sys.argv[1]
 
-con = sqlite3.connect(jail_dir + "/dryer21/data/seller_database/seller_database.db")
+db_path = jail_dir + "/dryer21/data/seller_database/seller_database.db"
+
+try:
+	os.unlink(db_path)
+except OSError:
+	pass
+
+con = sqlite3.connect(db_path)
 con.execute("""
 create table transactions (
-	session_token blob primary key,
+	token text primary key,
 	address_index integer,
 	address text,
 	price integer,
-	timestamp integer
+	timestamp real,
+	protobond_sent integer
 );
 """)
 

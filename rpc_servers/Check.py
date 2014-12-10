@@ -10,7 +10,7 @@ Additionally this implementation doesn't check that a transaction has confirmed 
 import bitcoin
 import rpc_lib
 
-rpc_lib.set_rpc_socket_path("/tmp/checksock")
+rpc_lib.set_rpc_socket_path("rpc/Check/sock")
 
 @rpc_lib.expose_rpc
 def check(addr, price):

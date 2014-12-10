@@ -30,14 +30,14 @@ class RPCServer(SocketServer.ThreadingUnixStreamServer):
 
 class RPCRequestHandler(SocketServer.StreamRequestHandler):
 	def handle(self):
-		print "Opening a connection."
+		print "[%s] Opening a connection." % global_socket_path
 		while True:
 			# Let exceptions happen here.
 			# They will kill this handler, but be handled gracefully by SocketServer.
 			line = self.rfile.readline().strip().decode("hex")
 			method, kwargs = json.loads(line)
 			with global_rpc_server_lock:
-				print "Call to %r on %r" % (method, kwargs)
+				print "[%s] Call to %r on %r" % (global_socket_path, method, kwargs)
 				# Look up the method in our RPC table.
 				function = global_rpc_table[method]
 				try:
@@ -86,12 +86,6 @@ def launch_rpc_server(import_name):
 	# This also has the side effect of setting global_socket_path.
 	__import__(import_name)
 	print "Launching RPC server: import_name=%r socket_path=%r" % (import_name, global_socket_path)
-	# Unlink any socket that may exist, to make room for a new one.
-	try:
-		print "Deleting an old file that was in the way of our socket_path."
-		os.unlink(global_socket_path)
-	except OSError:
-		pass
 	# Now launch the server.
 	server = RPCServer(global_socket_path, RPCRequestHandler)
 	server.serve_forever()

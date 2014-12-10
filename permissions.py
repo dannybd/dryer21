@@ -5,27 +5,27 @@ This program launches all the others.
 It also chmods everything in the jail to set the bits appropriately.
 """
 
-import os, sys
+import os, sys, time, collections
 
 # This is a special user we promise will never have any privs for anything.
 NO_PRIVS = 999999
 
 # This is a global listing of all the processes we need to launch.
-processes = {}
+# We keep track of the order to track dependencies.
+# We will launch processes in the order they are added to this dict.
+processes = collections.OrderedDict()
 
 # These are all the resources.
 resources = {}
 
 class Process:
-	def __init__(self, name, binary_path, arguments=[], has_rpc=False):
+	def __init__(self, name, binary_path, arguments=[]):
 		# Store ourself in the global listing.
 		assert name not in processes
 		processes[name] = self
 		self.name, self.binary_path, self.arguments = name, binary_path, arguments
-		# If RPC is required, add an associated resource.
-		if has_rpc:
-			self.rpc_resource = Resource("/dryer21/rpc/" + name, owner=self)
 		self.access = []
+		self.rpc_resource = None
 
 	def grant(self, resource):
 		self.access.append(resource)
@@ -37,6 +37,11 @@ class Resource:
 		resources[path] = self
 		self.path = path
 		self.owner = owner
+
+def declare_rpc_service(name):
+	proc = Process(name, "/dryer21/code/rpc_lib.py", ["--launch", "rpc_servers." + name])
+	# Set the processes' RPC resource.
+	proc.rpc_resource = Resource("/dryer21/rpc/" + name, owner=name)
 
 # This function lets a given process have access to a given resource.
 def grant(name, path):
@@ -59,7 +64,7 @@ def compute_tables():
 		resource.gid = base_gid
 	# Figure out the owners.
 	for resource in resources.values():
-		resource.uid = 0 if resource.owner is None else resource.owner.uid
+		resource.uid = 0 if resource.owner is None else processes[resource.owner].uid
 	# Grant each process all its groups.
 	for process in processes.values():
 		process.groups = [resource.gid for resource in process.access]
@@ -85,16 +90,21 @@ def launch_sequence():
 		for leaf in os.listdir(resource.path) + ["."]:
 			path = resource.path + "/" + leaf
 			# Set the owner bits.
-			print "%s <- UID=%i GID=%i" % (path, uid, gid)
 			os.chown(path, uid, gid)
 			# Set the permission bits.
 			if os.path.isdir(path):
-				os.chmod(path, 0750) # r-xr-x---
+				# Justification:
+				os.chmod(path, 0750) # rwxr-x---
 			else:
-				os.chmod(path, 0660) # rw-rw----
-	print "Spawning processes."
+				os.chmod(path, 0640) # rw-r-----
 	wait_list = []
 	for process in processes.values():
+		print "Spawning", process.name
+		# Delete the RPC resource socket, if there happens to be an old one sitting around.
+		# XXX: This code knows about the convention of rpc/Service/sock!
+		if process.rpc_resource != None:
+			if os.path.exists(process.rpc_resource.path + "/sock"):
+				os.unlink(process.rpc_resource.path + "/sock")
 		pid = os.fork()
 		if pid == 0:
 			# Change into the dryer21 directory.
@@ -104,25 +114,47 @@ def launch_sequence():
 			os.setgroups(process.groups)
 			os.setresuid(process.uid, process.uid, process.uid)
 			# Now launch python on the given script.
-			os.execve("/usr/bin/python", ["python", process.binary_path] + process.arguments, {"HOME": "/nonexistant"})
+			os.execve("/usr/bin/python", ["python", process.binary_path] + process.arguments, {"HOME": "/nonexistant", "PYTHONPATH": "/dryer21/code"})
 		else:
+			# Wait for the child to finish setting up, if it has an rpc_resource.
+			# This is necessary to prevent race conditions where future processes try to connect before this one is done setting up.
+			if process.rpc_resource != None:
+				# Currently I just use a little spin loop, which is good enough -- I'm not going to use inotify.
+				while not os.path.exists(process.rpc_resource.path + "/sock"):
+					time.sleep(0.1)
 			wait_list.append(pid)
-	print "Waiting for all children to die."
 	for pid in wait_list:
 		os.waitpid(pid, 0)
 	print "Exiting."
 
-# Declare all the processes.
-Process("FrontEnd", "/dryer21/code/FrontEnd.py")
-db = Process("Database", "/dryer21/code/rpc_lib.py", ["--launch", "rpc_servers.Database"], has_rpc=True)
+# Declare all the processes, which will be launched in the declared order.
+# NOTE: These MUST be declared in RPC dependency order!
+declare_rpc_service("Database")
+declare_rpc_service("Sign")
+declare_rpc_service("Check")
+declare_rpc_service("IssueProtobond")
+declare_rpc_service("GenQuote")
+Process("FrontEnd", "/dryer21/code/seller/seller.py")
 
-Resource("/dryer21/data/seller_database", owner=db)
+# Having access to a resource gives r-x, but being owner gives rwx.
+# Unfortunately, sqlite3 appears to modify the directory somehow, so it needs to be an owner.
+Resource("/dryer21/data/seller_database", owner="Database")
+Resource("/dryer21/data/crypto_private_key")
 
-grant_rpc("FrontEnd", "Database")
+grant("Sign", "/dryer21/data/crypto_private_key")
+
+grant_rpc("FrontEnd", "GenQuote")
+grant_rpc("FrontEnd", "IssueProtobond")
+grant_rpc("GenQuote", "Database")
+grant_rpc("IssueProtobond", "Database")
+grant_rpc("IssueProtobond", "Check")
+grant_rpc("IssueProtobond", "Sign")
+grant_rpc("Check", "Database")
 
 # If invoked directly, then we print out the tables.
 if __name__ == "__main__":
 	compute_tables()
+	print format_tables()
 	# If passed the single argument --launch, then launch the application.
 	if len(sys.argv) == 2 and sys.argv[1] == "--launch":
 		launch_sequence()
@@ -131,5 +163,4 @@ if __name__ == "__main__":
 	print "# Usage: permissions.py [--launch]"
 	print "# Prints UID/GID table when run without an argument."
 	print "# If passed --launch, launches the entire application."
-	print format_tables()
 
