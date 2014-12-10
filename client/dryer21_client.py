@@ -206,19 +206,12 @@ class CryptoHelper:
 	@staticmethod
 	def genNonce():
 		"""
-		Generate the nonce, r, for the message. We don't actually need the nonce
-		itself: its inverse, (r^-1) mod n, is stored for generating the bond from
-		the protobond later, and r^e is returned for using in token generation.
+		Generate the nonce, r, for the message, and store it for generating the bond
+		from the protobond later.
 		"""
+		# The nonce is stored for later use for turning the protobond into a bond
 		# FIXME According to pycrypto documentation, this function is for internal use only and may be renamed or removed in the future.
-		nonce = CryptoNumber.getRandomRange(0, CryptoVars.n)
-		# The inverse of the nonce is stored for later use as protobond --> bond
-		# TODO Verify this is time-invariant.
-		CryptoVars.nonce_inv = CryptoNumber.inverse(nonce, CryptoVars.n)
-		nonce_e = CryptoHelper.encrypt(nonce)
-		# Destroy the nonce as it is no longer needed.
-		del nonce
-		return nonce_e
+		CryptoVars.nonce = CryptoNumber.getRandomRange(0, CryptoVars.n)
 
 	@staticmethod
 	def encrypt(s):
@@ -285,10 +278,10 @@ class CryptoVars:
 	# validation with a high degree of confidence that this is an actual signed
 	# bond
 	msg_prefix = x_prefix
-	# Holds the inverse of the nonce, for generating the bond from the protobond.
+	# Holds the nonce for generating the bond from the protobond.
 	# Needs to be destroyed after use, so we're storing it as a value here and not
 	# passing it as an argument between frames to minimize copies in memory.
-	nonce_inv = None
+	nonce = None
 
 class CryptoClient:
 	"""
@@ -307,8 +300,8 @@ class CryptoClient:
 		"""
 		Generates a token, which is of the form (m*r^e) mod n.
 		Contains a message, m, which is of the form OAEP(PREFIX || Hash(n, x) || x),
-		as well as a nonce, r, which is encrypted. The nonce's inverse is generated
-		and stored for final bond generation later.
+		as well as a nonce, r, which is encrypted. The nonce is stored for final 
+		bond generation later.
 		"""
 		# Generate x, which is random with a prefix for verification purposes
 		x = CryptoVars.x_prefix + os.urandom(CryptoVars.x_entropy_bytes)
@@ -320,8 +313,10 @@ class CryptoClient:
 		m = CryptoHelper.bytesToLong(m)
 		if m != (m % CryptoVars.n):
 			raise ValueError('OAEP_cipher._key.n > key.n causing invalid m')
-		# Generate (r^e) mod n, also (r^-1) mod n [stored as CryptoVars.nonce_inv]
-		nonce_e = CryptoHelper.genNonce() % CryptoVars.n
+		# Generate the nonce, r
+		CryptoHelper.genNonce()
+		# Generate (r^e) mod n
+		nonce_e = CryptoHelper.encrypt(CryptoVars.nonce)
 		# Token = (m*r^e) mod n
 		token = (m * nonce_e) % CryptoVars.n
 		# Encode for sending to server / display to user
@@ -334,8 +329,10 @@ class CryptoClient:
 		convert it back into a long, and multiply it by nonce_inv to get the bond.
 		"""
 		protobond = CryptoHelper.longDecode(protobond_str)
-		# BOND = (PROTOBOND * r_inv) = (m^d * r * r_inv) = (m^d) mod n
-		bond = (protobond * CryptoVars.nonce_inv) % CryptoVars.n
+		# Generate nonce's inverse, r^-1, from the stored nonce
+		nonce_inv = CryptoNumber.inverse(CryptoVars.nonce, CryptoVars.n)
+		# BOND = (PROTOBOND * r^-1) = (m^d * r * r^-1) = (m^d) mod n
+		bond = (protobond * nonce_inv) % CryptoVars.n
 		# Encode the long for storage / display to the user
 		return CryptoHelper.longEncode(bond)
 
@@ -537,8 +534,8 @@ class Interface:
 		"""
 		Interface.waitingFor('Generating bond')
 		bond = CryptoClient.genBond(protobond)
-		# The nonce_inv should be destroyed at this stage; it's not needed anymore
-		del CryptoVars.nonce_inv
+		# The nonce should be destroyed at this stage; it's not needed anymore
+		del CryptoVars.nonce
 		Interface.doneWaiting()
 
 		Interface.waitingFor('Validating bond')
