@@ -2,12 +2,10 @@
 permissions.py
 
 This program launches all the others.
-It also chmods everything in /jail to set the bits appropriately.
+It also chmods everything in the jail to set the bits appropriately.
 """
 
 import os, sys
-
-JAIL_DIR = "/jail/"
 
 # This is a special user we promise will never have any privs for anything.
 NO_PRIVS = 999999
@@ -19,14 +17,14 @@ processes = {}
 resources = {}
 
 class Process:
-	def __init__(self, name, binary_path, has_rpc=False):
+	def __init__(self, name, binary_path, arguments=[], has_rpc=False):
 		# Store ourself in the global listing.
 		assert name not in processes
 		processes[name] = self
-		self.name, self.binary_path = name, binary_path
+		self.name, self.binary_path, self.arguments = name, binary_path, arguments
 		# If RPC is required, add an associated resource.
 		if has_rpc:
-			self.rpc_resource = Resource("/rpc/" + name, owner=self)
+			self.rpc_resource = Resource("/dryer21/rpc/" + name, owner=self)
 		self.access = []
 
 	def grant(self, resource):
@@ -50,8 +48,8 @@ def grant_rpc(caller, server):
 
 # This function computes UIDs and GIDs for each process and resource.
 def compute_tables():
-	base_uid = 10000
-	base_gid = 20000
+	base_uid = 1000000000
+	base_gid = 2000000000
 	# Sequentially assign UIDs and GIDs to processes and resources.
 	for process in processes.values():
 		base_uid += 1
@@ -76,55 +74,51 @@ def format_tables():
 	return "\n".join(s)
 
 def launch_sequence():
+	print "Creating resource directories."
+	for resource in resources.values():
+		if not os.path.exists(resource.path):
+			print "Creating: %s" % resource.path
+			os.mkdir(resource.path)
 	print "Setting permissions on resources."
 	for resource in resources.values():
-		path = JAIL_DIR + resource.path
 		uid, gid = resource.uid, resource.gid
-		# Set the owner bits.
-		print "%s <- UID=%i GID=%i" % (path, uid, gid)
-		os.chown(path, uid, gid)
-		# Set the permission bits.
-		os.chmod(path, 0750) # r-xr-x--- # FIXME 0750 != r-xr-x---
+		for leaf in os.listdir(resource.path) + ["."]:
+			path = resource.path + "/" + leaf
+			# Set the owner bits.
+			print "%s <- UID=%i GID=%i" % (path, uid, gid)
+			os.chown(path, uid, gid)
+			# Set the permission bits.
+			if os.path.isdir(path):
+				os.chmod(path, 0750) # r-xr-x---
+			else:
+				os.chmod(path, 0660) # rw-rw----
 	print "Spawning processes."
+	wait_list = []
 	for process in processes.values():
-		if os.fork() == 0:
+		pid = os.fork()
+		if pid == 0:
+			# Change into the dryer21 directory.
+			os.chdir("/dryer21")
 			# Drop permissions.
 			os.setresgid(NO_PRIVS, NO_PRIVS, NO_PRIVS)
 			os.setgroups(process.groups)
 			os.setresuid(process.uid, process.uid, process.uid)
-			# Now launch.
-			os.execve(process.binary_path, (), {})
+			# Now launch python on the given script.
+			os.execve("/usr/bin/python", ["python", process.binary_path] + process.arguments, {"HOME": "/nonexistant"})
+		else:
+			wait_list.append(pid)
+	print "Waiting for all children to die."
+	for pid in wait_list:
+		os.waitpid(pid, 0)
+	print "Exiting."
 
 # Declare all the processes.
-Process("FrontEnd", "/code/front_end.py")
-Process("QuoteGen", "/code/quote_gen.py", has_rpc=True)
-Process("IssueBond", "/code/issue_bond.py", has_rpc=True)
-Process("Database", "/code/database.py", has_rpc=True)
-Process("Checker", "/code/payment_checker.py", has_rpc=True)
-Process("Signer", "/code/token_signer.py", has_rpc=True)
+Process("FrontEnd", "/dryer21/code/FrontEnd.py")
+db = Process("Database", "/dryer21/code/rpc_lib.py", ["--launch", "rpc_servers.Database"], has_rpc=True)
 
-# Declare all the resources.
-Resource("/global/btc_master_public_key") # Used to deterministically generate Bitcoin addresses (without generating the corresponding private keys)
-Resource("/global/btc_master_private_key") # Used with the master public key to deterministically generate Bitcoin addresses with the private keys
-Resource("/global/bond_public_key") # Used to verify bonds
-Resource("/global/bond_private_key") # Used to sign proto-bonds
+Resource("/dryer21/data/seller_database", owner=db)
 
-# Declare which processes have access to which resources.
-grant_rpc("FrontEnd", "QuoteGen")
-grant_rpc("FrontEnd", "IssueBond")
-grant_rpc("QuoteGen", "Database")
-grant_rpc("IssueBond", "Checker")
-grant_rpc("IssueBond", "Signer")
-grant_rpc("IssueBond", "Database")
-
-# QuoteGen needs to generate addresses for people to send BTC to. To generate these addresses deterministically it uses the master public key.
-grant("QuoteGen", "/global/btc_master_public_key")
-
-# The checker checks that people have paid. The database stores (for a particular session) the wallet index, not the public key, so that the private key doesn't have to be stored. This means the checker needs to convert from a wallet index to a public key, which requires the Bitcoin master public key.
-grant("Checker", "/global/btc_master_public_key")
-
-# The signer signs proto-bonds, so it needs the private key for signing.
-grant("Signer", "/global/bond_private_key")
+grant_rpc("FrontEnd", "Database")
 
 # If invoked directly, then we print out the tables.
 if __name__ == "__main__":

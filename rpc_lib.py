@@ -50,6 +50,7 @@ class RPCClient:
 	def __init__(self, socket_path):
 		self.socket_path = socket_path
 		self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+		print
 		self.sock.connect(self.socket_path)
 		self.sock_file = self.sock.makefile()
 
@@ -81,11 +82,12 @@ def launch_rpc_server(import_name):
 	print "Launching RPC server: import_name=%r socket_path=%r" % (import_name, global_socket_path)
 	# Unlink any socket that may exist, to make room for a new one.
 	try:
+		print "Deleting an old file that was in the way of our socket_path."
 		os.unlink(global_socket_path)
-		print "Deleted an old file that was in the way of our socket_path."
 	except OSError:
 		pass
 	# Now launch the server.
+	print "TRYING:", os.getcwd(), global_socket_path
 	server = SocketServer.ThreadingUnixStreamServer(global_socket_path, RPCRequestHandler)
 	server.serve_forever()
 
