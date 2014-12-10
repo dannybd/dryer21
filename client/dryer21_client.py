@@ -1,3 +1,41 @@
+"""
+dryer21_client.py
+
+Provides a client for communicating with the Dryer 21 bond seller server.
+
+Contained classes:
+	- TorSocket: provides a wrapper on urllib2.urlopen for access to tor
+	- DryerServer: handles server connections and parsing responses for info
+	- CryptoHelper: provides helper methods/wrappers for use in the other classes
+	- CryptoVars: holds the relevant variables used across the classes
+	- CryptoClient: provides user-level actions like genToken() and validateBond()
+	- CryptoServer [MOCK]: mocks out server-side actions like genProtobond()
+	- Interface: draws the command-line interface for the client.
+
+To run the client with its interface, run:
+	$ python dryer21_client.py
+or:
+	$ python
+	>>> from dryer21_client import *
+	>>> Interface.run()
+
+If you would rather run the steps manually, here's what you need to run to
+generate a bond:
+	$ python
+	>>> from dryer21_client import *
+	>>> token = CryptoClient.genToken(); token
+	>>> price, addr = DryerServer.fetchQuote(token)
+	>>> print 'Go pay', price, 'to', addr
+	>>> # When that's done and confirmed:
+	>>> protobond = DryerServer.fetchProtobond(token); protobond
+	>>> bond = CryptoClient.genBond(protobond); bond
+	>>> (success, x, msg) = CryptoClient.validateBond(bond)
+	>>> print 'Valid:', success, msg
+	>>> # Store the bond to a file
+	>>> filename = CryptoClient.saveBondToFile(bond)
+	>>> print 'Your bond is stored here:', filename
+
+"""
 from base64 import b64encode, b64decode
 import Crypto.Util.number as CryptoNumber
 import Crypto.Cipher.PKCS1_OAEP as PKCS1_OAEP
@@ -8,6 +46,33 @@ import os
 import sys
 from time import sleep, time
 from urllib import urlencode
+
+class TorSocket:
+	"""
+	TorSocket provides a method for making connections through tor
+	"""
+	HOST = 'LOCALHOST'
+	PORT = 9150
+
+	def urlopen(*args, **kwargs):
+		"""
+			urlopen: a wrapper around urllib2.urlopen that passes the request through tor.
+		"""
+		import socks
+		import socket
+		import urllib2
+		# Use Tor's SOCKS5 server running on port 9150
+		socks.setdefaultproxy(socks.SOCKS5, TorSocket.HOST, TorSocket.PORT, rdns=True)
+		# The following is necessary to keep urllib2.urlopen from leaking DNS.
+		# Torify ALL the sockets!
+		socket.socket = socks.socksocket
+		def create_connection(address, timeout=None, source_address=None):
+			sock = socks.socksocket()
+			sock.connect(address)
+			return sock
+		socket.create_connection = create_connection
+		# Now all sockets we open will use Tor.
+		return urllib2.urlopen(*args, **kwargs)
 
 class DryerServer:
 	"""
@@ -36,8 +101,7 @@ class DryerServer:
 				import urllib2
 				response = urllib2.urlopen(DryerServer.MOCK_BASE_URL + url, urlencode(data))
 			else:
-				import torsocket
-				response = torsocket.urlopen(DryerServer.BASE_URL + url, urlencode(data))
+				response = TorSocket.urlopen(DryerServer.BASE_URL + url, urlencode(data))
 		except Exception:
 			Interface.failWaiting(errmsg)
 		try:
@@ -145,9 +209,11 @@ class CryptoHelper:
 		itself: its inverse, (r^-1) mod n, is stored for generating the bond from
 		the protobond later, and r^e is returned for using in token generation.
 		"""
-		nonce = CryptoNumber.getRandomRange(0, CryptoVars.n) # FIXME According to pycrypto documentation, this function is for internal use only and may be renamed or removed in the future.
+		# FIXME According to pycrypto documentation, this function is for internal use only and may be renamed or removed in the future.
+		nonce = CryptoNumber.getRandomRange(0, CryptoVars.n)
 		# The inverse of the nonce is stored for later use as protobond --> bond
-		CryptoVars.nonce_inv = CryptoNumber.inverse(nonce, CryptoVars.n) # TODO Verify this is time-invariant.
+		# TODO Verify this is time-invariant.
+		CryptoVars.nonce_inv = CryptoNumber.inverse(nonce, CryptoVars.n)
 		nonce_e = CryptoHelper.encrypt(nonce)
 		# Destroy the nonce as it is no longer needed.
 		del nonce
@@ -158,7 +224,8 @@ class CryptoHelper:
 		"""
 		Wrapper around the encryption method used by Crypto.PublicKey.RSA._RSAobj
 		"""
-		return CryptoVars.key.encrypt(s, 0)[0] # (the second argument is ignored, according to pycrypto docs)
+		# (the second argument is ignored, according to pycrypto docs)
+		return CryptoVars.key.encrypt(s, 0)[0]
 
 	@staticmethod
 	def bytesToLong(s):
