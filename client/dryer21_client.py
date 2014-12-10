@@ -54,6 +54,7 @@ class TorSocket:
 	HOST = 'LOCALHOST'
 	PORT = 9150
 
+	@staticmethod
 	def urlopen(*args, **kwargs):
 		"""
 			urlopen: a wrapper around urllib2.urlopen that passes the request through tor.
