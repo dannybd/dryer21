@@ -17,7 +17,7 @@ def dispense():
 		# A row is a dict with keys 'bond', 'address', and 'fulfilled'.
 		assert row['fulfilled'] == 0 
 		print "Unfulfilled row:", row
-		RedeemerDB.fulfill(row['bond'])
+		RedeemerDB.mark_fulfilled(bond=row['bond'])
 		send(global_storage.get_dispenser_private_key(), row['address'], global_storage.bond_value)
 
 def send(fromprivkey, toaddr, value):
