@@ -44,6 +44,9 @@ cp /etc/resolv.conf $JAIL/etc/
 mkdir -p $JAIL/usr/share/zoneinfo
 cp -r /usr/share/zoneinfo/America $JAIL/usr/share/zoneinfo/
 
+mkdir $JAIL/dev
+mknod -m 444 $JAIL/dev/urandom c 1 9
+
 # Build the various required directories.
 mkdir $JAIL/dryer21/
 mkdir $JAIL/dryer21/code/
@@ -52,6 +55,7 @@ mkdir $JAIL/dryer21/rpc/
 
 # Create resource directories.
 mkdir $JAIL/dryer21/data/seller_database
+mkdir $JAIL/dryer21/data/redeemer_database
 
 # Initialize the starting databases.
 python setup_databases.py $JAIL
