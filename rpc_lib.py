@@ -2,7 +2,7 @@
 rpc_lib.py
 """
 
-import os, sys, json, socket, functools, threading
+import os, sys, stat, json, socket, functools, threading
 import SocketServer
 
 # These two functions are the API used for declaring an RPC server.
@@ -20,6 +20,13 @@ class RPCException(Exception):
 	pass
 
 global_rpc_server_lock = threading.Lock()
+
+class RPCServer(SocketServer.ThreadingUnixStreamServer):
+	def __init__(self, server_address, request_handler_class):
+		SocketServer.UnixStreamServer.__init__(self, server_address, request_handler_class)
+		# Set the permissions on our socket to +777, to allow other people to write to it.
+		# Remember, our permission separation relies on directory permissions, so this is okay.
+		os.chmod(server_address, stat.S_IRWXO|stat.S_IRWXG|stat.S_IRWXU)
 
 class RPCRequestHandler(SocketServer.StreamRequestHandler):
 	def handle(self):
@@ -50,7 +57,6 @@ class RPCClient:
 	def __init__(self, socket_path):
 		self.socket_path = socket_path
 		self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-		print
 		self.sock.connect(self.socket_path)
 		self.sock_file = self.sock.makefile()
 
@@ -87,8 +93,7 @@ def launch_rpc_server(import_name):
 	except OSError:
 		pass
 	# Now launch the server.
-	print "TRYING:", os.getcwd(), global_socket_path
-	server = SocketServer.ThreadingUnixStreamServer(global_socket_path, RPCRequestHandler)
+	server = RPCServer(global_socket_path, RPCRequestHandler)
 	server.serve_forever()
 
 if __name__ == "__main__":
