@@ -1,6 +1,7 @@
 """
 Sign.py:
 Signs tokens, making them protobonds
+It is vital to the security of our system that Sign.sign be deterministic.
 """
 
 from base64 import b64encode, b64decode
