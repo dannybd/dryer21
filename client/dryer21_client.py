@@ -268,8 +268,6 @@ class CryptoClient:
 		protobond = CryptoHelper.longDecode(protobond_str)
 		# BOND = (PROTOBOND * r_inv) = (m^d * r * r_inv) = (m^d) mod n
 		bond = (protobond * CryptoVars.nonce_inv) % CryptoVars.n
-		# The nonce_inv should be destroyed at this stage; it's not needed anymore
-		del CryptoVars.nonce_inv
 		# Encode the long for storage / display to the user
 		return CryptoHelper.longEncode(bond)
 
@@ -393,7 +391,7 @@ class Interface:
 		token = CryptoClient.genToken()
 		Interface.doneWaiting()
 		# Jump to automatic submission
-		Interface.autoSubmit(token)
+		Interface.submitToken(token)
 
 	@staticmethod
 	def header():
@@ -425,7 +423,7 @@ class Interface:
 		return s
 
 	@staticmethod
-	def autoSubmit(token):
+	def submitToken(token):
 		"""
 		Automatically submit the generated token. Doing so returns a quote for
 		purchasing a bond, so we ping the server on regular intervals to see whether
@@ -471,6 +469,8 @@ class Interface:
 		"""
 		Interface.waitingFor('Generating bond')
 		bond = CryptoClient.genBond(protobond)
+		# The nonce_inv should be destroyed at this stage; it's not needed anymore
+		del CryptoVars.nonce_inv
 		Interface.doneWaiting()
 
 		Interface.waitingFor('Validating bond')
