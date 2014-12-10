@@ -3,7 +3,10 @@ from flask import make_response, render_template, request, json, url_for
 jsonify = json.jsonify
 
 app = Flask(__name__)
-# Restrict uploading files larger than 10kB. FIXME: Set to size of token in the future.
+# FIXME: COMMENT OUT IN PRODUCTION
+app.debug = True
+# Restrict uploading files larger than 10kB.
+# Tokens are ~1kB, but this prevents cat GIF uploads.
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024
 
 @app.route('/')
@@ -18,13 +21,13 @@ def fetch_connect():
 @app.route('/quote', methods=['POST'])
 def fetch_quote():
 	token = request.form.get('token', None)
-	mock = False
+	addr, price, mock = None, None, False
 	try:
-		# FIXME: Use RPC once available
-		from gen_quote import gen_quote
+		from rpc_clients.gen_quote import gen_quote
 		(addr, price) = gen_quote(token=token)
 	except Exception, e:
 		mock = True
+		print 'Using server-side mock mode'
 		(addr, price) = ('1DRYER21DRYER21DRYER21', '0.1BTC')
 	finally:
 		return jsonify(token=token,addr=addr,price=price,mock=mock)
@@ -32,14 +35,13 @@ def fetch_quote():
 @app.route('/protobond', methods=['POST'])
 def fetch_protobond():
 	token = request.form.get('token', None)
-	protobond = None
-	mock = False
+	protobond, mock = None, False
 	try:
-		# FIXME: Use RPC once available
-		from issue_protobond import issue_protobond
+		from rpc_clients.issue_protobond import issue_protobond
 		protobond = issue_protobond(token)
 	except Exception, e:
 		mock = True
+		print 'Using server-side mock mode'
 		from random import randint
 		if randint(1, 4) != 1:
 			return jsonify(error='No bitcoin yet...',mock=mock)

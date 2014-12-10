@@ -3,7 +3,10 @@ from flask import make_response, redirect, render_template, request, json, url_f
 jsonify = json.jsonify
 
 app = Flask(__name__)
-# Restrict uploading files larger than 10kB. FIXME: Set to size of bond in the future.
+# FIXME: COMMENT OUT IN PRODUCTION
+app.debug = True
+# Restrict uploading files larger than 10kB.
+# Tokens are ~1kB, but this prevents cat GIF uploads.
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024
 
 @app.route('/')
