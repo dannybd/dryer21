@@ -1,194 +1,67 @@
 <!doctype html>
 <html lang="en-us">
 <head>
-  <meta charset="utf-8">
-  <title>Dryer 21: A Bitcoin Anonymizer</title>
-  <meta name="description" content="Bitcoins go in, bitcoins come out: we can't explain that." />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    html, body, h1, h2, h3 {margin: 0;}
-    body {
-      background-color: #9E7D42;
-    }
-    header {
-      background-color: #FFFFFF;
-      margin: 20px 0;
-      padding: 20px 0;
-      text-align: center;
-    }
-    main {
-      background-color: #FFFFFF;
-      margin-left: calc(50% - 420px);
-      padding: 20px;
-      width: 800px;
-    }
-    #instructions li {
-      line-height: 1.5em;
-      margin-bottom: 4px;
-    }
-    .active_step {
-      background-color: #FFFF88;
-    }
-    #bond_price, #bitcoin_addr {
-      font-weight: bold;
-    }
-    #transaction_state {
-      display: none;
-    }
-  </style>
+	<meta charset="utf-8">
+	<title>Dryer 21: A Bitcoin Anonymizer</title>
+	<meta name="description" content="Bitcoins go in, bitcoins come out: never a miscommunication." />
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="shortcut icon" href="favicon.ico">
+	<style>
+		html, body, h1, h2, h3 {margin: 0;}
+		body {
+			background-color: #76450D;
+			font-family: Arial, sans-serif;
+		}
+		header {
+			background-color: #FFFFFF;
+			margin: 20px 0;
+			padding: 20px 0;
+			text-align: center;
+		}
+		main {
+			background-color: #FFFFFF;
+			margin-left: calc(50% - 420px);
+			padding: 20px;
+			width: 800px;
+			line-spacing: 1.3em;
+		}
+		a {
+			text-decoration: none;
+			font-weight: bold;
+		}
+		h1 > a {
+			color: black;
+		}
+	</style>
 </head>
 <body>
 <header>
-  <h1>Dryer 21: A Bitcoin Anonymizer, or:</h1>
-  <h2>"Bitcoins go in, bitcoins come out&mdash;never a miscommunication"</h2>
-  <h3>A 6.858 Project by asuhl, snp, dannybd</h3>
+	<h1><a href="/">Dryer 21: A Bitcoin Anonymizer</a></h1>
+	<h2>"Bitcoins go in, bitcoins come out&mdash;never a miscommunication"</h2>
+	<h3>A 6.858 Project by asuhl, snp, dannybd</h3>
 </header>
 <main>
-  <p>
-    <em>If you already have a bond, you can retrieve it for 0.1BTC <a href="http://dbd.mit.edu/dryer21_redeemer/">here</a>.</em>
-  </p>
-  <h3>Instructions</h3>
-  <ol id="instructions">
-    <li class="active_step">Download and run <a href="dryer21_client.py" target="_blank" download>this client Python script</a>.</li>
-    <li>
-      <label for="token_input">Paste the token output by the script here:</label>
-      <input id="token_input" type="text" placeholder="Token goes here" />
-      <input id="token_submit" type="button" value="Submit Token" />
-    </li>
-    <li>
-      Send <span id="bond_price">[Pending]</span> to <span id="bitcoin_addr">[Pending]</span>.<br>
-      Keep this page open while waiting for the transaction to clear.<br>
-      <span id="transaction_state"><strong>Transaction state:</strong> not cleared. <em>Next check in <span id="next_check">X seconds</span>...</em></span>
-    </li>
-    <li>
-      <strong>Copy the following and paste it into the Python script prompt: </strong>
-      <input id="bond_return" type="text" readonly placeholder="Something will appear here" /><br>
-      The Python script will then finish generating the bond for you, and save the bond to a file.<br>
-      <em>Be sure to keep the bond safe</em>&mdash;it is exchangeable for 0.1BTC at a later point.<br>
-    </li>
-    <li>
-      Keep the bond safe for at least a few days. (We recommend coming back in <span id="redeem_time">X days</span>.) Then, redeem your bond <a href="retrieve.html">here</a>.
-    </li>
-  </ol>
+	<h2 style="display: inline;">Bond Seller</h2>
+	<span style="padding-left: 20px;">
+		(If you already have a bond, you can redeem it for 0.1BTC here: <a href="http://dbd.mit.edu/dryer21_redeemer">Dryer 21 Redeemer</a>)
+	</span>
+	<hr>
+	<h3 id="using">Buying a Dryer 21 Bond</h3>
+	<p>
+		First download and run this bond-purchasing Python client: <a href="dryer21_client.py" download><tt>dryer21_client.py</tt></a> (<a href="dryer21_client.py.asc" download><tt>sig</tt></a>).
+	</p>
+	<p>
+		Please note that the client requires that you have the <tt>PyCrypto</tt> and <tt>PySocks</tt> Python libraries installed.
+	</p>
+	<h3 id="about">What is this?</h3>
+	<p>
+		We provide a Tor hidden service for anonymizing bitcoin transactions while preventing even our own server from linking from and to addresses. We accomplish this through the use of "bitcoin bonds", generated through a process known as blind signing. This allows a users to purchase and redeem bonds, without us (the server) being able to link sold and redeemed bonds. Such a setup has allows Alice to send Bob a bond's worth of bitcoin, without:
+		<ul>
+			<li>Alice learning Bob's bitcoin address</li>
+			<li>Bob learning Alice's bitcoin address</li>
+			<li>Our server being able to link Alice's bond purchase with Bob's bond redemption</li>
+		</ul>
+	</p>
 </main>
-<script src="jquery-2.1.1.min.js"></script>
-<script>
-  var token;
-  var heartbeatInterval;
-  var checkPeriod = 10;
-  var heartbeatCount = 0;
-  
-  var focusStep = function(n) {
-    $('#instructions li').removeClass('active_step');
-    $('#instructions li').eq(n-1).addClass('active_step');
-  };
-  
-  var setNextCheck = function(secondsLeft) {
-    $('#next_check').text(secondsLeft + ' second' + (secondsLeft === 1 ? '' : 's'));
-  };
-  
-  var toggleTokenInput = function(disable) {
-    var submitText = disable ? 'Token Submitted' : 'Submit Token';
-    $('#token_input').prop('readonly', disable);
-    $('#token_submit').val(submitText).prop('disabled', disable);
-  };
-  var disableTokenInput = toggleTokenInput.bind(this, true);
-  var enableTokenInput = toggleTokenInput.bind(this, false);
-  
-  var heartbeat = function() {
-    if (heartbeatCount === 0) {
-      heartbeatCount = checkPeriod;
-      retrieveBond();
-    }
-    setNextCheck(heartbeatCount--);
-  };
-  
-  var submitToken = function() {
-    token = $('#token_input').val();
-    if (!token) {
-      console.log('You need a token.');
-      return false;
-    }
-    disableTokenInput();
-    console.log('Token:', {token: token});
-    
-    $.ajax({
-      url: 'quote.php', 
-      type: 'POST',
-      data: {token: token}, 
-      dataType: 'json',
-      success: function(data) {
-        // console.log('Data retrieved:', data);
-        if (data.error) {
-          console.log('Something went wrong:', data.error);
-          enableTokenInput();
-          return;
-        }
-        $('#bond_price').text(data.price);
-        $('#bitcoin_addr').text(data.addr);
-        $('#transaction_state').show();
-        focusStep(3);
-        heartbeat();
-        heartbeatInterval = setInterval(function(){heartbeat()}, 1000);
-        submitToken = function() {
-          console.log('Token already successfully submitted.');
-          disableTokenInput();
-        };
-      },
-      error: function() {
-        console.log('AJAX error.');
-        enableTokenInput();
-      },
-    });
-  };
-  
-  var retrieveBond = function() {
-    if (!token) {
-      console.log('You need a token.');
-      return false;
-    }
-    console.log('Token:', {token: token});
-    
-    $.ajax({
-      url: 'protobond.php', 
-      type: 'POST',
-      data: {token: token}, 
-      dataType: 'json',
-      success: function(data) {
-        // console.log('Data retrieved:', data);
-        if (data.error) {
-          console.log('Something went wrong:', data.error);
-          return;
-        }
-        if (data.protobond) {
-          console.log('Protobond received!');
-          focusStep(4);
-          $('#transaction_state').html('<strong>Transaction state: cleared!</strong>');
-          $('#bond_return').val(data.protobond);
-          clearInterval(heartbeatInterval);
-        }
-      },
-      error: function() {
-        console.log('AJAX error.');
-      },
-    });
-  };
-  
-  $(function(){
-    $('#token_input').focus(function() {
-      focusStep(2);
-    });
-    $('#token_input').keydown(function(e) {
-      if ($(this).prop('readonly')) {
-        return false;
-      }
-      if (e.which === 13) {
-        $(this).blur();
-        submitToken();
-      }
-    });
-    $('#token_submit').click(function(){submitToken()});
-  });
-</script>
 </body>
 </html>
