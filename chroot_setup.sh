@@ -59,8 +59,9 @@ mkdir $JAIL/dryer21/data/redeemer_database
 mkdir $JAIL/dryer21/data/signing_private_key
 mkdir $JAIL/dryer21/data/collector_master_public_key
 mkdir $JAIL/dryer21/data/collector_master_private_key
-mkdir $JAIL/dryer21/data/dispenser_public_key
+mkdir $JAIL/dryer21/data/dispenser_address
 mkdir $JAIL/dryer21/data/dispenser_private_key
+mkdir $JAIL/dryer21/data/mixin_address
 
 # Initialize the starting databases.
 python setup_databases.py $JAIL
@@ -80,6 +81,7 @@ cp keys/collector_master_public_key.txt $JAIL/dryer21/data/collector_master_publ
 cp keys/collector_master_private_key.txt $JAIL/dryer21/data/collector_master_private_key
 cp keys/dispenser_public_key.txt $JAIL/dryer21/data/dispenser_public_key
 cp keys/dispenser_private_key.txt $JAIL/dryer21/data/dispenser_private_key
+cp keys/mixin_address $JAIL/dryer21/data/mixin_address
 
 # Make absolutely everything be owned by root to start with.
 chown -R 0:0 $JAIL
