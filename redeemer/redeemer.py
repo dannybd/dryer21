@@ -1,10 +1,14 @@
+"""
+redeemer.py
+
+Contains the flask app which runs the redeemer frontend
+Makes RPC calls to other code which crunches stuff, and passes the results back to the client.
+"""
 from flask import Flask
 from flask import make_response, redirect, render_template, request, json, url_for
 jsonify = json.jsonify
 
 app = Flask(__name__)
-# FIXME: COMMENT OUT IN PRODUCTION
-app.debug = True
 # Restrict uploading files larger than 10kB.
 # Tokens are ~1kB, but this prevents cat GIF uploads.
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024
@@ -37,4 +41,7 @@ def request_entity_too_large(error):
 	return bond_error('The file you tried to upload was too large!'), 413
 
 if __name__ == '__main__':
+	# FIXME: REMOVE DEBUG MODE IN PRODUCTION
+	import sys
+	app.debug = '--debug' in sys.argv[1:]
 	app.run(port=9002)
