@@ -134,7 +134,7 @@ declare_rpc_service("Sign")
 declare_rpc_service("Check")
 declare_rpc_service("IssueProtobond")
 declare_rpc_service("GenQuote")
-Process("FrontEnd", "/dryer21/code/seller/seller.py")
+Process("Seller", "/dryer21/code/seller/seller.py")
 
 # Having access to a resource gives r-x, but being owner gives rwx.
 # Unfortunately, sqlite3 appears to modify the directory somehow, so it needs to be an owner.
@@ -143,8 +143,8 @@ Resource("/dryer21/data/crypto_private_key")
 
 grant("Sign", "/dryer21/data/crypto_private_key")
 
-grant_rpc("FrontEnd", "GenQuote")
-grant_rpc("FrontEnd", "IssueProtobond")
+grant_rpc("Seller", "GenQuote")
+grant_rpc("Seller", "IssueProtobond")
 grant_rpc("GenQuote", "Database")
 grant_rpc("IssueProtobond", "Database")
 grant_rpc("IssueProtobond", "Check")
