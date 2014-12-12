@@ -46,9 +46,7 @@ def gen_quote(token):
 		index = random.SystemRandom().getrandbits(128)
 		address = bitcoin.electrum_address(mpk, index)
 		# Price is the price to buy a bond, in satoshi. (We don't use BTC because we don't want floating point errors.)
-		price = 10 ** 7 # 0.1 BTC -- for now, no markup. In the future this may change based on transaction costs, overhead, greediness, etc.
-		# XXX: WARNING: FIXME: TODO: Make this not just be zero! This is for debugging purposes.
-		price = 0
+		price = global_storage.bond_price
 		SellerDB.put(token=token, index=index, address=address, price=price)
 	return (address, price)
 

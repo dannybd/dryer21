@@ -3,7 +3,8 @@ import Crypto.Hash.SHA512 as SHA512
 import Crypto.PublicKey.RSA as RSA
 import base64, functools
 
-bond_value = 15000
+bond_price = 14000 # How much we sell bonds for
+bond_value = 10000 # How much we redeem bonds for
 
 def memoized(f):
 	memo = {}
@@ -16,37 +17,48 @@ def memoized(f):
 
 @memoized
 def get_collector_master_public_key():
-	public_keystr = open("data/collector_master_public_key/collector_master_public_key.txt").read().strip()
+	with open('data/collector_master_public_key/collector_master_public_key.txt', 'r') as f:
+		public_keystr = f.read().strip()
 	return public_keystr
 
 @memoized
 def get_collector_master_private_key():
-	private_keystr = open("data/collector_master_private_key/collector_master_private_key.txt").read().strip()
+	with open('data/collector_master_private_key/collector_master_private_key.txt', 'r') as f:
+		private_keystr = f.read().strip()
 	return private_keystr
 
 @memoized
 def get_dispenser_address():
-	address = open("data/dispenser_address/dispenser_address.txt").read().strip()
+	with open('data/dispenser_address/dispenser_address.txt', 'r') as f:
+		address = f.read().strip()
 	return address
 
 @memoized
 def get_dispenser_private_key():
-	private_keystr = open("data/dispenser_private_key/dispenser_private_key.txt").read().strip()
+	with open('data/dispenser_private_key/dispenser_private_key.txt', 'r') as f:
+		private_keystr = f.read().strip()
 	return private_keystr
 
-#@memoized
-#def get_signing_public_key():
-#	public_keystr = open("data/signing_public_key/signing_public_key.txt").read()
-#	return importKey(public_keystr)
+@memoized
+def get_signing_public_keystr():
+	with open('data/signing_public_key/signing_public_key.txt', 'r') as f:
+		public_keystr = f.read()
+	return public_keystr
+
+@memoized
+def get_signing_public_key():
+	return importKey(get_sigining_public_keystr())
 
 @memoized
 def get_signing_private_key():
-	private_keystr = open("data/signing_private_key/signing_private_key.txt").read()
+	with open('data/signing_private_key/signing_private_key.txt', 'r') as f:
+		private_keystr = f.read()
 	return importKey(private_keystr)
 
 @memoized
 def get_mixin_address():
-	address = open("data/mixin_address/mixin_address.txt").read().strip()
+	with open('data/mixin_address/mixin_address.txt', 'r') as f:
+		address = f.read().strip()
 	return address
 
 def importKey(keystr):
@@ -60,8 +72,7 @@ class CryptoVars:
 	Stores the variables involved within the crypto processes.
 	"""
 	# key, n correspond to the 4096-bit RSA used in the token and bond
-	keystr = 'MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEApYV26Umk/uU0Gau29/XNKhxtA1P6fwhMctW+5Jqg32tYwVk2ZUMGHzgDexZdHmOoHYFYllP1TuWZEMpTwxMCJtV0gWhBGdUmAECVnVwmzfG2RvCfVSlmbNei2C6I2mlC05eg0tXyGW4AGXG8yfhW/P2mD23B7zZGzY8/thCWCYGnbNG9i0+Qk4muohLyoLhIGcHK38yDmsjQ3JFSSwrg2S6iXa/dfXbPonNZZvSZAUYBeRaZoJYtmD8hygQSy++HQ254las1UtTLlvdLZ9O6vIg6y0vCSjWn1NCqAYlm94mFxk9cIB9iIkmES37sLZMG8YD47xCxiLAcIxpwoVJJVrIc+wQoT4qNSdCixQG0Z7HA7+DcWA1txFSH8zaTmCI0AKL5zxSsitzprB8TJcaDAFq7DXUW1LuysnEEdm+Nf20MLZ/pwjJu4lMkP0K/ukdt0VHXSjNYZkhUEwUju3T0W10ZzdCjL3AdjnPBw/CMaCOaXxjsN/9qhH59p8+FmFUu749mp6j+5u25o93SEnPy8xDbf6wNjueU2a4z10u4o16frfIEwz84peGKeamGH9ALLV3nlC+bVd7AhE3MfXQ/B1YJUxPVhmYkKJvkRcBTpZMIGhzVG5PwTLxS1GDz0mhoBkic8RDVN6fVpkEutA9nZGgKFBL+u+rPa5JjSLwP3mcCAwEAAQ=='
-	key = importKey(keystr)
+	key = get_signing_public_key()
 	n = key.n
 	# OAEP_cipher is also based on 4096-bit RSA, and contains both the public
 	# and private key. This is NOT used for encrypting the token or bond, but
