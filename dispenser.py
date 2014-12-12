@@ -21,13 +21,14 @@ def dispense():
 		send(global_storage.get_dispenser_private_key(), row['address'], global_storage.bond_value)
 
 def send(fromprivkey, toaddr, value):
-	transaction_fee = 20000
-	tx = bitcoin.mksend(bitcoin.history(bitcoin.privtoaddr(fromprivkey)), [{'value': value, 'address': toaddr}], bitcoin.privtoaddr(fromprivkey), transaction_fee)
+	transaction_fee = 20000 # .0002 BTC
+	fromaddress = privtoaddr(fromprivkey)
+	tx = bitcoin.mksend(bitcoin.history(fromaddress), [{'value': value, 'address': toaddr}], fromaddress, transaction_fee)
 	signed_tx = bitcoin.sign(tx, 0, fromprivkey)
 	bitcoin.pushtx(signed_tx)
 
 if __name__ == "__main__":
+	import time
 	while True:
-		import time
 		time.sleep(60)
 		dispense()
