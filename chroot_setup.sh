@@ -10,7 +10,7 @@ fi
 
 echo "Attempting to make target directory: $JAIL"
 
-if true; then
+if false; then
 
 if [ -d "$JAIL" ]; then
     echo "Target directory already exists, deleting it."

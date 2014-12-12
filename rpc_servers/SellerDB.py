@@ -48,3 +48,17 @@ def mark_protobond_sent(token):
 	finally:
 		conn.close()
 
+@rpc_lib.expose_rpc
+def get_rows_with_protobond_sent():
+	conn = sqlite3.connect("data/seller_database/seller_database.db")
+	conn.row_factory = sqlite3.Row
+	token = token.encode("hex")
+	try:
+		rows = map(dict, conn.execute("select address_index, address, price, timestamp, protobond_sent from transactions where protobond_sent > 0",))
+		for row in rows:
+			row["address_index"] = int(row["address_index"])
+			row["address"] = row["address"].decode("hex")
+		return rows
+	finally:
+		conn.close()
+
