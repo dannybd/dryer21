@@ -6,6 +6,9 @@ import base64, functools
 bond_price = 65000 # How much we sell bonds for
 bond_value = 40000 # How much we redeem bonds for
 
+SELLER_URL = 'http://dryer4xxsgccsbec.onion/'
+REDEEMER_URL = 'http://dryer5eerdqniypm.onion/'
+
 def memoized(f):
 	memo = {}
 	@functools.wraps(f)
