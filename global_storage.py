@@ -3,7 +3,8 @@ import Crypto.Hash.SHA512 as SHA512
 import Crypto.PublicKey.RSA as RSA
 import base64, functools
 
-bond_value = 15000
+bond_price = 14000 # How much we sell bonds for
+bond_value = 10000 # How much we redeem bonds for
 
 def memoized(f):
 	memo = {}
