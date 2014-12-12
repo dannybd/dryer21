@@ -38,6 +38,7 @@ def put(token, index, address, price):
 @rpc_lib.expose_rpc
 def mark_protobond_sent(token):
 	conn = sqlite3.connect("data/seller_database/seller_database.db")
+	token = token.encode("hex")
 	try:
 		try:
 			conn.execute("update transactions set protobond_sent = protobond_sent + 1 where token = ?", (token,))

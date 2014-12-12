@@ -23,6 +23,7 @@ def try_to_redeem(bond, address):
 @rpc_lib.expose_rpc
 def mark_fulfilled(bond):
 	conn = sqlite3.connect("data/redeemer_database/redeemer_database.db")
+	bond = bond.encode("hex")
 	try:
 		conn.execute("update transactions set fulfilled = 1 where bond = ?", (bond,))
 		conn.commit()
