@@ -10,7 +10,7 @@ fi
 
 echo "Attempting to make target directory: $JAIL"
 
-if [ "$1" == "--rebuild" ]; then
+if [ "$1" = "--rebuild" ]; then
 
 if [ -d "$JAIL" ]; then
     echo "Target directory already exists, deleting it."
