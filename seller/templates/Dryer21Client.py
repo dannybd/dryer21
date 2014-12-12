@@ -302,7 +302,7 @@ def import_key(keystr):
 class CryptoVars:
 	""" Stores the variables involved within the crypto processes. """
 	# key, n correspond to the 4096-bit RSA used in the token and bond
-	keystr = {{ 'foobar' }}
+	keystr = {{ repr('foobar') }}
 	key = import_key(keystr)
 	n = key.n
 	# OAEP_cipher is also based on 4096-bit RSA, and contains both the public
