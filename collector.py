@@ -28,7 +28,6 @@ def send_whole_wallet(fromprivkey, toaddr):
 	transaction_fee = 20000 # .0002 BTC
 	fromaddress = bitcoin.privtoaddr(fromprivkey)
 	balance = sum(transaction['value'] for transaction in bitcoin.unspent(fromaddress))
-	print "Balance:", balance
 	assert balance >= transaction_fee
 	tx = bitcoin.mktx(bitcoin.history(fromaddress), [{'value': balance - transaction_fee, 'address': toaddr}])
 	signed_tx = bitcoin.sign(tx, 0, fromprivkey)
@@ -37,5 +36,5 @@ def send_whole_wallet(fromprivkey, toaddr):
 if __name__ == "__main__":
 	import time
 	while True:
-		time.sleep(5)
+		time.sleep(60)
 		collect()

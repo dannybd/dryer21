@@ -22,7 +22,7 @@ def dispense():
 
 def send(fromprivkey, toaddr, value):
 	transaction_fee = 20000 # .0002 BTC
-	fromaddress = privtoaddr(fromprivkey)
+	fromaddress = bitcoin.privtoaddr(fromprivkey)
 	tx = bitcoin.mksend(bitcoin.history(fromaddress), [{'value': value, 'address': toaddr}], fromaddress, transaction_fee)
 	signed_tx = bitcoin.sign(tx, 0, fromprivkey)
 	bitcoin.pushtx(signed_tx)
@@ -30,5 +30,5 @@ def send(fromprivkey, toaddr, value):
 if __name__ == "__main__":
 	import time
 	while True:
-		time.sleep(60)
+		time.sleep(5)
 		dispense()
