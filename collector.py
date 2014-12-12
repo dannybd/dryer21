@@ -35,5 +35,5 @@ def send_whole_wallet(fromprivkey, toaddr):
 if __name__ == "__main__":
 	import time
 	while True:
-		time.sleep(60)
+		time.sleep(5)
 		collect()

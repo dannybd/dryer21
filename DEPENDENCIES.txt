@@ -1,0 +1,3 @@
+pybitcointools, as installed from github.com/vbuterin/pybitcointools
+flask
+(for client) pysocks
