@@ -26,8 +26,11 @@ def index():
 
 @app.route('/Dryer21Client.py')
 def download_client():
-	response = make_response(render_template('Dryer21Client.py', CryptoVars=CryptoVars))
-	response.headers['Content-type'] = 'text/javascript'
+	response = make_response(render_template(
+		'Dryer21Client.py.template',
+		CryptoVars=CryptoVars,
+	))
+	response.headers['Content-Disposition'] = 'attachment; filename=Dryer21Client.py'
 	return response
 
 @app.route('/connect', methods=['GET', 'POST'])
