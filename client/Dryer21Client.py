@@ -36,7 +36,7 @@ import base64, json, random, os, sys, time, urllib
 save, mock, bypassTor = True, False, False
 BASE_URL = 'http://dryer4xxsgccsbec.onion/'
 MOCK_BASE_URL = 'http://127.0.0.1:9001/'
-MOCK_BASE_URL = 'http://dbd.mit.edu/dryer21_seller/'
+#MOCK_BASE_URL = 'http://dbd.mit.edu/dryer21_seller/'
 
 def fetch_connect():
 	""" Initial connectivity test to the server. """

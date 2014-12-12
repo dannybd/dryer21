@@ -29,5 +29,5 @@ def send(fromprivkey, toaddr, value):
 if __name__ == "__main__":
 	while True:
 		import time
-		time.sleep(1)
+		time.sleep(60)
 		dispense()

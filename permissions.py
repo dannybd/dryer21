@@ -154,6 +154,7 @@ Resource("/dryer21/data/mixin_address")
 
 grant("Sign", "/dryer21/data/signing_private_key")
 grant("Dispenser", "/dryer21/data/dispenser_private_key")
+grant("GenQuote", "/dryer21/data/collector_master_public_key")
 
 grant_rpc("Seller", "GenQuote")
 grant_rpc("Seller", "IssueProtobond")
