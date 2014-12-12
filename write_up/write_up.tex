@@ -76,8 +76,15 @@ Unfortunately, the four page limit prevents us from delving into the many securi
 Let it simply be said that we put a lot of thought into it, and the entire design assumes that the frontend processes can be completely compromised.
 
 \section{Limitations and Future Work}
-Our current implementation is subject to a major limitation that must be mentioned.
+Our current implementation relies upon the pybitcointools library, which in turn relies upon blockchain.info, for blockchain operations.
+This effectively means that the operatrs of blockchain.info can steal all our Bitcoin at any time.
+The correct solution is to have a Bitcoin client with a full copy of the blockchain running locally, and to rely on it for all blockchain operations.
+This is our plan should we actually run this service, but it is beyond the scope of our final project.
 
+The actual movement of Bitcoin from the mixing address to a client's address upon redeeming a bond tends to fail due to what we believe to be a bug in the pybitcointools library. Since it's possible to carry out this Bitcoin movement manually be examining the database, and since in the end we won't be using pybitcointools for blockchain operations anyway, we are content to consider this a limitation of the current implementation.
+
+\section{Acknowledgements}
+Our project was inspired by the work of our friend Duncan Townsend, who three years ago implemented an almost identical Bitcoin anonymization service that used Chaumian blind-signing. His implementation had a security flaw, and only by sheer luck did he manage to shut the service down before all of his Bitcoin was stolen. Our project would not have been possible without his guidance.
 
 \begin{figure}[ht]
 \begin{center}
