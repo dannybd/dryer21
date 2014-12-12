@@ -12,6 +12,7 @@ jsonify = json.jsonify
 
 import rpc_lib
 from rpc_clients import GenQuote, IssueProtobond
+from global_storage import CryptoVars
 
 app = Flask(__name__)
 # Restrict uploading files larger than 10kB.
@@ -22,6 +23,12 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024
 @app.route('/index')
 def index():
 	return render_template('seller.html')
+
+@app.route('/Dryer21Client.py')
+def download_client():
+	response = make_response(render_template('Dryer21Client.py', CryptoVars=CryptoVars))
+	response.headers['Content-type'] = 'text/javascript'
+	return response
 
 @app.route('/connect', methods=['GET', 'POST'])
 def fetch_connect():

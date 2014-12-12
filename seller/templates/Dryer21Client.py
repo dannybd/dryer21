@@ -302,7 +302,7 @@ def import_key(keystr):
 class CryptoVars:
 	""" Stores the variables involved within the crypto processes. """
 	# key, n correspond to the 4096-bit RSA used in the token and bond
-	keystr = 'MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEApYV26Umk/uU0Gau29/XNKhxtA1P6fwhMctW+5Jqg32tYwVk2ZUMGHzgDexZdHmOoHYFYllP1TuWZEMpTwxMCJtV0gWhBGdUmAECVnVwmzfG2RvCfVSlmbNei2C6I2mlC05eg0tXyGW4AGXG8yfhW/P2mD23B7zZGzY8/thCWCYGnbNG9i0+Qk4muohLyoLhIGcHK38yDmsjQ3JFSSwrg2S6iXa/dfXbPonNZZvSZAUYBeRaZoJYtmD8hygQSy++HQ254las1UtTLlvdLZ9O6vIg6y0vCSjWn1NCqAYlm94mFxk9cIB9iIkmES37sLZMG8YD47xCxiLAcIxpwoVJJVrIc+wQoT4qNSdCixQG0Z7HA7+DcWA1txFSH8zaTmCI0AKL5zxSsitzprB8TJcaDAFq7DXUW1LuysnEEdm+Nf20MLZ/pwjJu4lMkP0K/ukdt0VHXSjNYZkhUEwUju3T0W10ZzdCjL3AdjnPBw/CMaCOaXxjsN/9qhH59p8+FmFUu749mp6j+5u25o93SEnPy8xDbf6wNjueU2a4z10u4o16frfIEwz84peGKeamGH9ALLV3nlC+bVd7AhE3MfXQ/B1YJUxPVhmYkKJvkRcBTpZMIGhzVG5PwTLxS1GDz0mhoBkic8RDVN6fVpkEutA9nZGgKFBL+u+rPa5JjSLwP3mcCAwEAAQ=='
+	keystr = {{ 'foobar' }}
 	key = import_key(keystr)
 	n = key.n
 	# OAEP_cipher is also based on 4096-bit RSA, and contains both the public
