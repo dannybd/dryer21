@@ -20,8 +20,8 @@ generate a bond:
 	>>> # When that's done and confirmed:
 	>>> protobond = fetch_protobond(token); protobond
 	>>> bond = gen_bond(protobond); bond
-	>>> (success, x, msg) = validate_bond(bond)
-	>>> print 'Valid:', success, msg
+	>>> validate_bond(bond)
+	>>> print 'Valid bond!'
 	>>> # Store the bond to a file
 	>>> filename = save_bond(bond)
 	>>> print 'Your bond is stored here:', filename
@@ -36,7 +36,6 @@ import base64, json, random, os, sys, time, urllib
 save, mock, bypassTor = True, False, False
 BASE_URL = 'http://dryer4xxsgccsbec.onion/'
 MOCK_BASE_URL = 'http://127.0.0.1:9001/'
-#MOCK_BASE_URL = 'http://dbd.mit.edu/dryer21_seller/'
 
 def fetch_connect():
 	""" Initial connectivity test to the server. """
